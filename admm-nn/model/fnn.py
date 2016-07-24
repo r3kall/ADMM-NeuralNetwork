@@ -1,14 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-__author__ = 'Lorenzo Rutigliano, lnz.rutigliano@gmail.com'
 
 import numpy as np
 import numpy.matlib
+import scipy.optimize
+import auxiliaries
+
+
+__author__ = 'Lorenzo Rutigliano, lnz.rutigliano@gmail.com'
+
 
 class HiddenLayer(object):
 
-    def __init__(self, n_in, n_out, n_sample, W=None, A=None, Z=None, nl_func=None,
-                 beta=1, gamma=10):
+    def __init__(self, n_in, n_out, n_sample, w=None, a=None, z=None,
+                 nl_func=auxiliaries.relu, beta=1, gamma=10):
         """
         Hidden layer of a MLP or FeedForward NN: units are fully-connected and have a
         custom activation function.
@@ -19,14 +24,14 @@ class HiddenLayer(object):
         :type n_out: int
         :param n_out: number of hidden units
 
-        :type W: matrix
-        :param W: weight matrix of shape(n_out, n_in)
+        :type w: matrix
+        :param w: weight matrix of shape(n_out, n_in)
 
-        :type A: matrix
-        :param A:
+        :type a: matrix
+        :param a:
 
-        :type Z: matrix
-        :param Z:
+        :type z: matrix
+        :param z:
 
         :type nl_func: function
         :param nl_func: Non linearity to be applied in the hidden layer
@@ -38,42 +43,61 @@ class HiddenLayer(object):
         self.nl_func = nl_func
         self.beta = beta
         self.gamma = gamma
-        self.W = W
+        self.w = w
 
-        if A is None:
-            self.A = np.matlib.randn(self.n_out, self.n_sample)
+        if a is None:
+            self.a = np.fabs(np.matlib.randn(self.n_out, self.n_sample))
         else:
-            self.A = A
+            self.a = a
 
-        if Z is None:
-            self.Z = np.matlib.randn(self.n_out, self.n_sample)
+        if z is None:
+            self.z = np.fabs(np.matlib.randn(self.n_out, self.n_sample))
         else:
-            self.Z = Z
+            self.z = z
 
-        np.mat(self.A, dtype='float64')
-        np.mat(self.Z, dtype='float64')
+        np.mat(self.a, dtype='float64')
+        np.mat(self.z, dtype='float64')
 
     def layer_output(self):
-        return self.nl_func(self.Z)
+        return self.nl_func(self.z)
 
     def calc_weights(self, a_p):
         ap_ps = np.linalg.pinv(a_p)
-        self.W = self.Z * ap_ps
+        self.w = self.z * ap_ps
 
     def calc_activation_matrix(self, beta_f, weights_f, zeta_f):
-        wt = weights_f.getT() * beta_f
-        w1 = wt * weights_f
+        wt = weights_f.T * beta_f
+        w1 = np.dot(wt, weights_f)
         I = np.identity(weights_f.shape[1], dtype='float64') * self.gamma
         m1 = np.linalg.inv(w1 + I)
 
-        w2 = wt * zeta_f
+        w2 = np.dot(wt, zeta_f)
         h = self.layer_output() * self.gamma
         m2 = w2 + h
 
-        self.A = m1 * m2
+        self.a = np.dot(m1, m2)
 
     def _output_matrix(self, z, a_p):
-        m1 = self.gamma * np.linalg.norm()
+        norm1 = self.a - auxiliaries.relu(z)
+        m1 = self.gamma * (np.linalg.norm(norm1)**2)
+        norm2 = z - (self.w * a_p)
+        m2 = self.beta * (np.linalg.norm(norm2)**2)
+        return m1 + m2
 
     def calc_output_matrix(self, a_p):
-        pass
+        res = scipy.optimize.minimize(self._output_matrix, self.z, args=a_p)
+        self.z = res
+
+
+def main():
+    hl1 = HiddenLayer(5, 3, 6)
+
+    ap = np.log2(np.arange(30).reshape(6, 5)+1.8)
+    print(ap)
+    print("\n")
+    hl1.calc_output_matrix(ap)
+    #print(hl1.z)
+
+
+if __name__ == "__main__":
+    main()
