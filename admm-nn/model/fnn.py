@@ -78,25 +78,29 @@ class HiddenLayer(object):
         self.a = np.dot(m1, m2)
 
     def _output_matrix(self, z, a_p):
-        norm1 = self.a - auxiliaries.relu(z)
+        norm1 = self.a.flatten() - auxiliaries.relu(z)
         m1 = self.gamma * (np.linalg.norm(norm1)**2)
-        norm2 = z - (self.w * a_p)
+
+        mpt = np.dot(self.w, a_p)
+        norm2 = z - mpt.flatten()
         m2 = self.beta * (np.linalg.norm(norm2)**2)
+
         return m1 + m2
 
     def calc_output_matrix(self, a_p):
         res = scipy.optimize.minimize(self._output_matrix, self.z, args=a_p)
-        self.z = res
+        self.z = res.x
 
 
 def main():
     hl1 = HiddenLayer(5, 3, 6)
 
-    ap = np.log2(np.arange(30).reshape(6, 5)+1.8)
-    print(ap)
-    print("\n")
-    hl1.calc_output_matrix(ap)
-    #print(hl1.z)
+    ap = np.log2(np.arange(30).reshape(5, 6)+1.8)
+    mp = np.mat(ap)
+
+    hl1.calc_weights(mp)
+    hl1.calc_output_matrix(mp)
+    print(hl1.z)
 
 
 if __name__ == "__main__":
