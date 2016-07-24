@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 import numpy as np
 import numpy.matlib
@@ -90,6 +88,81 @@ class HiddenLayer(object):
     def calc_output_matrix(self, a_p):
         res = scipy.optimize.minimize(self._output_matrix, self.z, args=a_p)
         self.z = res.x
+
+
+class OutputLayer(object):
+    def __init__(self, n_in, n_out, n_sample, targets, w=None, z=None,
+                 lmbda=None, nl_func=None, beta=1, gamma=10):
+        """
+        :type
+        :param n_in:
+
+        :type
+        :param n_out:
+
+        :type
+        :param n_sample:
+
+        :type
+        :param targets:
+
+        :type
+        :param w:
+
+        :type
+        :param z:
+
+        :type
+        :param lmbda:
+
+        :type
+        :param nl_func:
+
+        :type
+        :param beta:
+
+        :type
+        :param gamma:
+        """
+
+        self.n_in = n_in
+        self.n_out = n_out
+        self.n_sample = n_sample
+        self.targets = targets
+        self.nl_func = nl_func
+        self.beta = beta
+        self.gamma = gamma
+        self.w = w
+
+        if z is None:
+            self.z = np.fabs(np.matlib.randn(self.n_out, self.n_sample))
+        else:
+            self.z = z
+        np.mat(self.z, dtype='float64')
+
+    def layer_output(self):
+        return self.nl_func(self.z)
+
+    def calc_weights(self, a_p):
+        ap_ps = np.linalg.pinv(a_p)
+        self.w = self.z * ap_ps
+
+    def _output_matrix(self, z, a_p):
+        norm1 = self.a.flatten() - auxiliaries.relu(z)
+        m1 = self.gamma * (np.linalg.norm(norm1) ** 2)
+
+        mpt = np.dot(self.w, a_p)
+        norm2 = z - mpt.flatten()
+        m2 = self.beta * (np.linalg.norm(norm2) ** 2)
+
+        return m1 + m2
+
+    def calc_output_matrix(self, a_p):
+        pass
+
+
+
+
 
 
 def main():

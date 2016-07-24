@@ -1,9 +1,7 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-__author__ = 'Lorenzo Rutigliano, lnz.rutigliano@gmail.com'
 
 import numpy as np
+
+__author__ = 'Lorenzo Rutigliano, lnz.rutigliano@gmail.com'
 
 
 def relu(x):
