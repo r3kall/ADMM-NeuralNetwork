@@ -1,10 +1,14 @@
+import random
 from abc import ABCMeta, abstractmethod
+from sklearn.metrics.classification import log_loss
+
 from logger import defineLogger, Loggers
-from auxiliaries import check_dimensions, relu
+from auxiliaries import check_dimensions, relu, hinge_loss
 
 import numpy as np
 import numpy.matlib
 import scipy.optimize
+import time
 import auxiliaries
 
 
@@ -58,22 +62,6 @@ class Layer(metaclass=ABCMeta):
     def __str__(self):
         return '[' + str(self.n_in) + ', ' + str(self.n_out) + ']'
 
-    @abstractmethod
-    def layer_output(self):
-        pass
-
-    @abstractmethod
-    def calc_weights(self, a_p):
-        pass
-
-    @abstractmethod
-    def calc_activation_vector(self, beta_f, weights_f, zeta_f):
-        pass
-
-    @abstractmethod
-    def calc_output_vector(self, a_p):
-        pass
-
 
 class HiddenLayer(Layer):
 
@@ -91,14 +79,22 @@ class HiddenLayer(Layer):
             log.debug("Activation array user-defined")
 
         if z is None:
-            self.z = np.fabs(np.matlib.randn(self.n_out, 1))
+            self.z = np.matlib.randn(self.n_out, 1)
             log.debug("Output array randomly initialized")
         else:
             self.z = z
             log.debug("Output array user-defined")
 
+        if w is None:
+            self.w = np.matlib.randn(self.n_out, self.n_in)
+            log.debug("Weights randomly initialized")
+        else:
+            self.w = w
+            log.debug("Weights user-defined")
+
         check_dimensions(self.a, self.n_out, 1)
-        check_dimensions(self.a, self.n_out, 1)
+        check_dimensions(self.z, self.n_out, 1)
+        check_dimensions(self.w, self.n_out, self.n_in)
 
     def layer_output(self):
         return self.nl_func(self.z)
@@ -108,7 +104,7 @@ class HiddenLayer(Layer):
         self.w = np.dot(self.z, ap_ps)
         check_dimensions(self.w, self.n_out, self.n_in)
 
-    def calc_activation_vector(self, beta_f, weights_f, zeta_f):
+    def calc_activation_array(self, beta_f, weights_f, zeta_f):
         # matrix wt is not the transpose but the adjugate
         wt = weights_f.T * beta_f
         w1 = np.dot(wt, weights_f)
@@ -122,32 +118,43 @@ class HiddenLayer(Layer):
         self.a = np.dot(m1, m2)
         check_dimensions(self.a, self.n_out, 1)
 
-    def _output_vector(self, z, mpt):
+    def _output_array(self, z, mpt):
         norm1 = self.a.ravel() - relu(z)
         m1 = self.gamma * (np.linalg.norm(norm1)**2)
         norm2 = z - mpt.ravel()
         m2 = self.beta * (np.linalg.norm(norm2)**2)
         return m1 + m2
 
-    def calc_output_vector(self, a_p):
+    def calc_output_array(self, a_p):
         mpt = np.dot(self.w, a_p)
-        res = scipy.optimize.minimize(self._output_vector, self.z, args=mpt)
+        res = scipy.optimize.minimize(self._output_array, self.z, args=mpt)
         self.z = np.reshape(res.x, (len(res.x), 1))
         check_dimensions(self.z, self.n_out, 1)
 
+    def train_layer(self, a_p, beta_f, weights_f, zeta_f):
+        self.calc_weights(a_p)
+        self.calc_activation_array(beta_f, weights_f, zeta_f)
+        self.calc_output_array(a_p)
+
 
 class LastLayer(Layer):
-    def __init__(self, n_in, n_out, targets, a=None, z=None, w=None, lAmbda=None):
+    def __init__(self, n_in, n_out, a=None, z=None, w=None, lAmbda=None):
 
         super().__init__(n_in, n_out, a, z, w)
-        self.targets = targets
 
         if z is None:
-            self.z = np.fabs(np.matlib.randn(self.n_out, 1))
+            self.z = np.matlib.randn(self.n_out, 1)
             log.debug("Output array randomly initialized")
         else:
             self.z = z
             log.debug("Output array user-defined")
+
+        if w is None:
+            self.w = np.matlib.randn(self.n_out, self.n_in)
+            log.debug("Weights randomly initialized")
+        else:
+            self.w = w
+            log.debug("Weights user-defined")
 
         if lAmbda is None:
             self.lAmbda = np.zeros((self.n_out, 1), dtype='float64')
@@ -157,6 +164,7 @@ class LastLayer(Layer):
             log.debug("Lambda array user-defined")
 
         check_dimensions(self.z, self.n_out, 1)
+        check_dimensions(self.w, self.n_out, self.n_in)
         check_dimensions(self.lAmbda, self.n_out, 1)
 
     def layer_output(self):
@@ -167,19 +175,15 @@ class LastLayer(Layer):
         self.w = np.dot(self.z, ap_ps)
         check_dimensions(self.w, self.n_out, self.n_in)
 
-    def calc_activation_vector(self, beta_f, weights_f, zeta_f):
-        raise Exception("Operation not available for %s" % LastLayer.__name__)
-
-    def _output_vector(self, z, sp, mpt):
-        # loss function
+    def _output_array(self, z, sp, mpt, y):
         norm = z - mpt.ravel()
         v2 = self.beta * (np.linalg.norm(norm) ** 2)
-        return sp.ravel() + v2
+        return hinge_loss(z, y) + sp + v2
 
-    def calc_output_vector(self, a_p):
+    def calc_output_array(self, a_p, y):
         sp = np.dot(self.z.T, self.lAmbda)
         mpt = np.dot(self.w, a_p)
-        res = scipy.optimize.minimize(self._output_vector, self.z, args=(sp, mpt))
+        res = scipy.optimize.minimize(self._output_array, self.z, args=(sp, mpt, y))
         self.z = np.reshape(res.x, (len(res.x), 1))
         check_dimensions(self.z, self.n_out, 1)
 
@@ -187,43 +191,59 @@ class LastLayer(Layer):
         wt = np.dot(self.w, a_p)
         wd = self.z - wt
         self.lAmbda += self.beta * wd
+        check_dimensions(self.lAmbda, self.n_out, 1)
+
+    def train_layer(self, a_p, target):
+        self.calc_weights(a_p)
+        self.calc_output_array(a_p, target)
+        self.calc_lambda(a_p)
 
 
 class InputLayer(Layer):
-    def __init__(self, n_in, n_out, data_input, a=None, z=None, w=None):
+    def __init__(self, n_in, n_out, a=None, z=None, w=None):
         super().__init__(n_in, n_out, a, z, w)
-        self.nl_func = auxiliaries.relu
-        self.data = data_input
 
-        self.a = self.data
+    def calc_activation_array(self, data_input):
+        self.a = data_input
 
-    def layer_output(self):
-        raise Exception("Operation not available for %s" % InputLayer.__name__)
 
-    def calc_weights(self, a_p):
-        raise Exception("Operation not available for %s" % InputLayer.__name__)
+def target_gen(dim, n):
+    targets = []
+    for i in range(n):
+        t = np.full((dim, 1), -1, dtype='float64')
+        index = random.choice(range(dim))
+        t[index] = 1
+        targets.append(t)
+    return targets
 
-    def calc_activation_vector(self, beta_f, weights_f, zeta_f):
-        raise Exception("Operation not available for %s" % InputLayer.__name__)
 
-    def calc_output_vector(self, a_p):
-        raise Exception("Operation not available for %s" % InputLayer.__name__)
-
+def sample_gen(dim, n):
+    samples = []
+    for i in range(n):
+        s = np.log10(np.random.gamma(5, size=(dim, 1)))
+        samples.append(s)
+    return samples
 
 def main():
-    ll = LastLayer(8, 4, None)
-    ap = np.log2(np.arange(8).reshape(8, 1)+0.5)
-    wf = np.log2(np.arange(8).reshape(2, 4)+1.3)
-    zf = np.log2(np.arange(2).reshape(2, 1)+0.7)
-    ll.calc_weights(ap)
-    ll.calc_output_vector(ap)
-    ll.calc_lambda(ap)
-    print("\nWEIGHTS")
-    print(ll.w)
+
+    samples = sample_gen(200, 10)
+    targets = target_gen(10, 10)
+    if len(samples) != len(targets):
+        raise ValueError("samples != targets")
+
+    input_layer = InputLayer(200, 200)
+    hidden_layer_1 = HiddenLayer(200, 50)
+    last_layer = LastLayer(50, 10)
+
+    for i in range(len(samples)):
+        input_layer.calc_activation_array(samples[i])
+        hidden_layer_1.train_layer(input_layer.a, last_layer.beta,
+                                   last_layer.w, last_layer.z)
+        last_layer.train_layer(hidden_layer_1.a, targets[i])
+
     print("\nOUTPUT")
-    print(ll.z)
-    print("\nLAMBDA")
-    print(ll.lAmbda)
+    print(last_layer.z)
+
 
 if __name__ == "__main__":
     main()
