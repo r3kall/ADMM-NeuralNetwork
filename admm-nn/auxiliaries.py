@@ -35,6 +35,13 @@ def linear(x):
     return x
 
 
+def mean_squared_error(prediction, label):
+    assert len(prediction) == len(label)
+    v = (prediction - label)**2
+    s = sum(v)
+    return s/len(label)
+
+
 def hinge_loss(prediction, label):
     num = 0.
     dem = 0.
@@ -109,7 +116,7 @@ def get_max_index(a):
         if a[i] > mx:
             mx = a[i]
             index = i
-    return mx, index
+    return mx, float(index)
 
 
 def convert_binary_to_number(t):

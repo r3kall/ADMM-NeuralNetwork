@@ -1,14 +1,12 @@
-import random
-from abc import ABCMeta, abstractmethod
-
-from logger import defineLogger, Loggers
-from auxiliaries import check_dimensions, relu, binary_classification, linear
 
 import numpy as np
 import numpy.matlib
 import scipy.optimize
-import time
+from abc import ABCMeta
 
+from logger import defineLogger, Loggers
+from auxiliaries import check_dimensions, relu, binary_classification, \
+    linear, mean_squared_error
 
 __author__ = 'Lorenzo Rutigliano, lnz.rutigliano@gmail.com'
 
@@ -16,7 +14,6 @@ log = defineLogger(Loggers.STANDARD)
 
 
 class Layer(metaclass=ABCMeta):
-
     def __init__(self, n_in, n_out, a, z, w,
                  nl_func=None, beta=1, gamma=10):
         """
@@ -62,9 +59,7 @@ class Layer(metaclass=ABCMeta):
 
 
 class HiddenLayer(Layer):
-
     def __init__(self, n_in, n_out, a=None, z=None, w=None):
-
         super().__init__(n_in, n_out, a, z, w)
         self.nl_func = relu
         log.debug("Non-linear function: %s" % self.nl_func.__name__)
@@ -213,34 +208,7 @@ class InputLayer(Layer):
 
 
 def main():
-    test = 100
-    samples, targets = data_gen(200, 10, test)
-    ok = 0.
-    err = 0.
-    for j in range(test):
-        print("\nTEST %s" % str(j))
-        input_layer.layer_output(samples[j])
-        hidden_layer_1.layer_output(input_layer.a, last_layer.beta,
-                                   last_layer.w, last_layer.z)
-        last_layer.layer_output(hidden_layer_1.a, targets[j])
-        max, index = getmaxindex(last_layer.z)
-        trg = convert_binary_to_number(targets[j])
-        print("TARGET")
-        print(trg)
-        print("OUTPUT")
-        print(str(max) + "  " + str(index))
-        print("RESULT")
-        if trg == index:
-            ok += 1
-            print("OK")
-        else:
-            err += 1
-            print("ERROR")
-
-    print("\nTOTAL RESULT")
-    print("OK: %s" % str(ok))
-    print("ERR: %s" % str(err))
-
+    pass
 
 if __name__ == "__main__":
     main()
