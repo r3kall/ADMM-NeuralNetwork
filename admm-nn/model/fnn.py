@@ -57,22 +57,27 @@ class FNN(object):
                                                          self.hidden_layers_list[pos+1].w,
                                                          self.hidden_layers_list[pos+1].z)
 
-    def _train(self, fun, samples, targets, n, n_of_layers):
+    def _train(self, fun, samples, targets, n, n_of_layers, ws_iter):
         assert fun is not None
         for i in range(n):
             self.input_layer.layer_output(samples[i])
             for j in range(n_of_layers):
                 fun()
-            self.last_layer.train_layer(self.hidden_layers_list[-1].a, targets[i])
+            if ws_iter > 0:
+                self.last_layer.warm_start(self.hidden_layers_list[-1].a, targets[i])
+                ws_iter -= 1
+            else:
+                self.last_layer.train_layer(self.hidden_layers_list[-1].a, targets[i])
 
-    def train(self, samples, targets, n):
+    def train(self, samples, targets, n, warmstart_percent=25):
         assert n > 0
         assert len(samples) == len(targets) == n
+        ws = auxiliaries.get_percentage(warmstart_percent, n)
         n_of_layers = len(self.hidden_layers_list)
         if n_of_layers == 1:
-            self._train(self._train_single_hidden_layer, samples, targets, n, 1)
+            self._train(self._train_single_hidden_layer, samples, targets, n, 1, ws)
         else:
-            self._train(self._train_hidden_layers, samples, targets, n, n_of_layers)
+            self._train(self._train_hidden_layers, samples, targets, n, n_of_layers, ws)
 
     def _validate_single_hidden_layer(self):
         self.hidden_layers_list[0].layer_output(self.input_layer.a,
@@ -99,17 +104,17 @@ class FNN(object):
                                                           self.hidden_layers_list[pos+1].w,
                                                           self.hidden_layers_list[pos+1].z)
 
-    def _validate(self, fun, samples, targets, n, n_of_layers):
+    def _validate(self, fun, samples, targets, n, converter):
         assert fun is not None
         mse = 0
         errn = 0
         for i in range(n):
             self.input_layer.layer_output(samples[i])
-            for j in range(n_of_layers):
+            for j in range(len(self.hidden_layers_list)):
                 fun()
             self.last_layer.layer_output(self.hidden_layers_list[-1].a, targets[i])
             mse += auxiliaries.mean_squared_error(self.last_layer.z, targets[i])
-            y = auxiliaries.convert_binary_to_number(targets[i])
+            y = converter(targets[i])
             mx, index = auxiliaries.get_max_index(self.last_layer.z)
             if index != y:
                 errn += 1
@@ -121,14 +126,16 @@ class FNN(object):
         assert len(samples) == len(targets) == n
         n_of_layers = len(self.hidden_layers_list)
         if n_of_layers == 1:
-            self._validate(self._validate_single_hidden_layer, samples, targets, n, 1)
+            self._validate(self._validate_single_hidden_layer, samples, targets,
+                           n, auxiliaries.convert_binary_to_number)
         else:
-            self._validate(self._validate_hidden_layers, samples, targets, n, n_of_layers)
+            self._validate(self._validate_hidden_layers, samples, targets,
+                           n, auxiliaries.convert_binary_to_number)
 
 
 def main():
     fnn = FNN(768, 10, 100)
-    c = 300
+    c = 200
     samples, targets = auxiliaries.data_gen(768, 10, c)
     fnn.train(samples, targets, c)
 

@@ -196,6 +196,10 @@ class LastLayer(Layer):
         self.calc_output_array(a_p, target)
         self.calc_lambda(a_p)
 
+    def warm_start(self, a_p, target):
+        self.calc_weights(a_p)
+        self.calc_output_array(a_p, target)
+
 
 class InputLayer(Layer):
     def __init__(self, n_in, n_out, a=None, z=None, w=None):

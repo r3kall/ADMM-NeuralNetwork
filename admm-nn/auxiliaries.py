@@ -1,3 +1,4 @@
+import math
 import numpy as np
 import random
 import numpy.matlib
@@ -93,7 +94,7 @@ def _fill_array(array, occ, x):
 
 
 def sample_gen(dim_sample, seed):
-    occ = random.randint((dim_sample/4)+1, dim_sample)
+    occ = random.randint((dim_sample/4)+1, (dim_sample/2)+1)
     s = np.matlib.randn(dim_sample, 1)
     _fill_array(s, occ, seed)
     return s
@@ -117,6 +118,15 @@ def get_max_index(a):
             mx = a[i]
             index = i
     return mx, float(index)
+
+
+def get_percentage(percentage, n):
+    assert 0 <= percentage <= 100
+    if percentage == 0:
+        return 0
+    if percentage == 100:
+        return n
+    return math.floor((n/100)*percentage)
 
 
 def convert_binary_to_number(t):

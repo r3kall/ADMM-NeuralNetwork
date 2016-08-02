@@ -27,15 +27,6 @@ LOGGING = {
             'formatter': 'standard',
             'class': 'logging.StreamHandler',
         },
-        'rotate_file': {
-            'level': 'DEBUG',
-            'formatter': 'standard',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': 'rotated.log',
-            'encoding': 'utf8',
-            'maxBytes': 100000,
-            'backupCount': 1,
-        }
     },
     'loggers': {
         'standard': {
