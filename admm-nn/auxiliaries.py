@@ -40,39 +40,18 @@ def mean_squared_error(prediction, label):
     assert len(prediction) == len(label)
     v = (prediction - label)**2
     s = sum(v)
-    return s/len(label)
-
-
-def hinge_loss(prediction, label):
-    num = 0.
-    dem = 0.
-    if len(prediction) == len(label):
-        for i in range(len(prediction)):
-            prod = prediction[i] * label[i]
-            num += max(0, 1 - prod)
-            dem += 1
-        return num/dem
-    raise ValueError("Array dimensions don't match"
-                     "\nPrediction length: %s"
-                     "\nLabel length: %s" % (len(prediction), len(label))
-                     )
+    return s/(len(label)*2)
 
 
 def binary_classification(prediction, label):
+    assert len(prediction) == len(label)
     num = 0.
     dem = 0.
-    if len(prediction) == len(label):
-        for i in range(len(prediction)):
-            if label[i] == 0:
-                num += max(0, prediction[i])
-            else:
-                num += max(0, 1 - prediction[i])
-            dem += 1
-        return num / dem
-    raise ValueError("Array dimensions don't match"
-                     "\nPrediction length: %s"
-                     "\nLabel length: %s" % (len(prediction), len(label))
-                     )
+    for i in range(len(prediction)):
+        if label[i] == 1:
+            num += max(0, 1 - prediction[i])
+        dem += 1
+    return num / dem
 
 
 def target_gen(classes, seed):

@@ -105,43 +105,56 @@ class FNN(object):
                                                           self.hidden_layers_list[pos+1].z)
 
     def _validate(self, fun, samples, targets, n, converter):
-        assert fun is not None
-        mse = 0
-        errn = 0
+        error = 0
+        accuracy = 0
         for i in range(n):
             self.input_layer.layer_output(samples[i])
             for j in range(len(self.hidden_layers_list)):
                 fun()
             self.last_layer.layer_output(self.hidden_layers_list[-1].a, targets[i])
-            mse += auxiliaries.mean_squared_error(self.last_layer.z, targets[i])
+            # measures
+            error += auxiliaries.binary_classification(self.last_layer.z, targets[i])
             y = converter(targets[i])
             mx, index = auxiliaries.get_max_index(self.last_layer.z)
-            if index != y:
-                errn += 1
-        print("\nMSE: %s" % str(mse/n))
-        print("\nCORR: %s / %s" % (str(n - errn), n))
+            if index == y:
+                accuracy += 1
+        print("Error: %s" % str(error/n))
+        print("Accuracy: %s / %s" % (str(accuracy), n))
+        return error/n
 
     def validate(self, samples, targets, n):
         assert n > 0
         assert len(samples) == len(targets) == n
         n_of_layers = len(self.hidden_layers_list)
         if n_of_layers == 1:
-            self._validate(self._validate_single_hidden_layer, samples, targets,
-                           n, auxiliaries.convert_binary_to_number)
+            return self._validate(self._validate_single_hidden_layer, samples, targets,
+                                  n, auxiliaries.convert_binary_to_number)
         else:
-            self._validate(self._validate_hidden_layers, samples, targets,
-                           n, auxiliaries.convert_binary_to_number)
+            return self._validate(self._validate_hidden_layers, samples, targets,
+                                  n, auxiliaries.convert_binary_to_number)
+
+    def train_until_converge(self, training_set, testing_set, threshold=0.1):
+        acc = 100.
+        epoch = 1
+        while acc > threshold:
+            print("\nEPOCH [%s]" % str(epoch))
+            self.train(training_set['x'], training_set['y'], training_set['n'])
+            acc = self.validate(testing_set['x'], testing_set['y'], testing_set['n'])
+            epoch += 1
+        return acc
 
 
 def main():
-    fnn = FNN(768, 10, 100)
-    c = 200
+    fnn = FNN(768, 10, 100, 50)
+    c = 500
     samples, targets = auxiliaries.data_gen(768, 10, c)
-    fnn.train(samples, targets, c)
+    trn = {'x':samples, 'y':targets, 'n':c}
 
     test = 100
     samples, targets = auxiliaries.data_gen(768, 10, test)
-    fnn.validate(samples, targets, test)
+    tst = {'x':samples, 'y':targets, 'n':test}
+    print("Start training routine\n")
+    fnn.train_until_converge(trn, tst, threshold=0.01)
 
 
 if __name__ == "__main__":

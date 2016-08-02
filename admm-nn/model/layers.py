@@ -96,7 +96,7 @@ class HiddenLayer(Layer):
     def calc_weights(self, a_p):
         ap_ps = np.linalg.pinv(a_p)
         self.w = np.dot(self.z, ap_ps)
-        check_dimensions(self.w, self.n_out, self.n_in)
+        #check_dimensions(self.w, self.n_out, self.n_in)
 
     def calc_activation_array(self, beta_f, weights_f, zeta_f):
         # matrix wt is not the transpose but the adjugate
@@ -110,7 +110,7 @@ class HiddenLayer(Layer):
         m2 = w2 + h
 
         self.a = np.dot(m1, m2)
-        check_dimensions(self.a, self.n_out, 1)
+        #check_dimensions(self.a, self.n_out, 1)
 
     def _output_array(self, z, mpt):
         norm1 = self.a.ravel() - self.nl_func(z)
@@ -123,7 +123,7 @@ class HiddenLayer(Layer):
         mpt = np.squeeze(np.asarray(np.dot(self.w, a_p)))
         res = scipy.optimize.minimize(self._output_array, self.z, args=mpt)
         self.z = np.reshape(res.x, (len(res.x), 1))
-        check_dimensions(self.z, self.n_out, 1)
+        #check_dimensions(self.z, self.n_out, 1)
 
     def train_layer(self, a_p, beta_f, weights_f, zeta_f):
         self.calc_weights(a_p)
@@ -169,7 +169,7 @@ class LastLayer(Layer):
     def calc_weights(self, a_p):
         ap_ps = np.linalg.pinv(a_p)
         self.w = np.dot(self.z, ap_ps)
-        check_dimensions(self.w, self.n_out, self.n_in)
+        #check_dimensions(self.w, self.n_out, self.n_in)
 
     def _output_array(self, z, sp, mpt, y):
         norm = z - mpt
@@ -183,13 +183,13 @@ class LastLayer(Layer):
         mpt = np.squeeze(np.asarray(np.dot(self.w, a_p)))
         res = scipy.optimize.minimize(self._output_array, self.z, args=(sp, mpt, y))
         self.z = np.reshape(res.x, (len(res.x), 1))
-        check_dimensions(self.z, self.n_out, 1)
+        #check_dimensions(self.z, self.n_out, 1)
 
     def calc_lambda(self, a_p):
         wt = np.dot(self.w, a_p)
         wd = self.z - wt
         self.lAmbda += self.beta * wd
-        check_dimensions(self.lAmbda, self.n_out, 1)
+        #check_dimensions(self.lAmbda, self.n_out, 1)
 
     def train_layer(self, a_p, target):
         self.calc_weights(a_p)
