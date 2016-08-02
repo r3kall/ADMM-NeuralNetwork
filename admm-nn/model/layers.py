@@ -1,15 +1,13 @@
 import random
 from abc import ABCMeta, abstractmethod
-from sklearn.metrics.classification import log_loss
 
 from logger import defineLogger, Loggers
-from auxiliaries import check_dimensions, relu, hinge_loss
+from auxiliaries import check_dimensions, relu, binary_classification, linear
 
 import numpy as np
 import numpy.matlib
 import scipy.optimize
 import time
-import auxiliaries
 
 
 __author__ = 'Lorenzo Rutigliano, lnz.rutigliano@gmail.com'
@@ -96,8 +94,9 @@ class HiddenLayer(Layer):
         check_dimensions(self.z, self.n_out, 1)
         check_dimensions(self.w, self.n_out, self.n_in)
 
-    def layer_output(self):
-        return self.nl_func(self.z)
+    def layer_output(self, a_p, beta_f, weights_f, zeta_f):
+        self.calc_activation_array(beta_f, weights_f, zeta_f)
+        self.calc_output_array(a_p)
 
     def calc_weights(self, a_p):
         ap_ps = np.linalg.pinv(a_p)
@@ -112,21 +111,21 @@ class HiddenLayer(Layer):
         m1 = np.linalg.inv(w1 + i)
 
         w2 = np.dot(wt, zeta_f)
-        h = self.layer_output() * self.gamma
+        h = self.nl_func(self.z) * self.gamma
         m2 = w2 + h
 
         self.a = np.dot(m1, m2)
         check_dimensions(self.a, self.n_out, 1)
 
     def _output_array(self, z, mpt):
-        norm1 = self.a.ravel() - relu(z)
+        norm1 = self.a.ravel() - self.nl_func(z)
         m1 = self.gamma * (np.linalg.norm(norm1)**2)
         norm2 = z - mpt.ravel()
         m2 = self.beta * (np.linalg.norm(norm2)**2)
         return m1 + m2
 
     def calc_output_array(self, a_p):
-        mpt = np.dot(self.w, a_p)
+        mpt = np.squeeze(np.asarray(np.dot(self.w, a_p)))
         res = scipy.optimize.minimize(self._output_array, self.z, args=mpt)
         self.z = np.reshape(res.x, (len(res.x), 1))
         check_dimensions(self.z, self.n_out, 1)
@@ -141,6 +140,7 @@ class LastLayer(Layer):
     def __init__(self, n_in, n_out, a=None, z=None, w=None, lAmbda=None):
 
         super().__init__(n_in, n_out, a, z, w)
+        self.nl_func = linear
 
         if z is None:
             self.z = np.matlib.randn(self.n_out, 1)
@@ -167,8 +167,9 @@ class LastLayer(Layer):
         check_dimensions(self.w, self.n_out, self.n_in)
         check_dimensions(self.lAmbda, self.n_out, 1)
 
-    def layer_output(self):
-        return self.nl_func(self.z)
+    def layer_output(self, a_p, target):
+        self.calc_output_array(a_p, target)
+        self.calc_lambda(a_p)
 
     def calc_weights(self, a_p):
         ap_ps = np.linalg.pinv(a_p)
@@ -176,14 +177,15 @@ class LastLayer(Layer):
         check_dimensions(self.w, self.n_out, self.n_in)
 
     def _output_array(self, z, sp, mpt, y):
-        norm = z - mpt.ravel()
+        norm = z - mpt
         v2 = self.beta * (np.linalg.norm(norm) ** 2)
-        z = np.reshape(z, )
-        return hinge_loss(z.ravel(), y) + sp + v2
+        loss = binary_classification(z, y)
+        return loss + sp + v2
 
     def calc_output_array(self, a_p, y):
-        sp = np.dot(self.z.T, self.lAmbda)
-        mpt = np.dot(self.w, a_p)
+        y = np.squeeze(np.asarray(y))
+        sp = (np.dot(self.z.T, self.lAmbda))[0]
+        mpt = np.squeeze(np.asarray(np.dot(self.w, a_p)))
         res = scipy.optimize.minimize(self._output_array, self.z, args=(sp, mpt, y))
         self.z = np.reshape(res.x, (len(res.x), 1))
         check_dimensions(self.z, self.n_out, 1)
@@ -203,52 +205,41 @@ class LastLayer(Layer):
 class InputLayer(Layer):
     def __init__(self, n_in, n_out, a=None, z=None, w=None):
         super().__init__(n_in, n_out, a, z, w)
+        assert self.n_out == self.n_in
+        self.nl_func = linear
 
-    def calc_activation_array(self, data_input):
-        self.a = data_input
+    def layer_output(self, a_p):
+        self.a = self.nl_func(a_p)
 
-
-def target_gen(dim, n):
-    targets = []
-    for i in range(n):
-        t = np.full((dim, 1), -1, dtype='float64')
-        index = random.choice(range(dim))
-        t[index] = 1
-        targets.append(t)
-    return targets
-
-
-def sample_gen(dim, n):
-    samples = []
-    for i in range(n):
-        s = np.log10(np.random.gamma(5, size=(dim, 1)))
-        samples.append(s)
-    return samples
 
 def main():
-
-    samples = sample_gen(200, 10)
-    targets = target_gen(10, 10)
-    if len(samples) != len(targets):
-        raise ValueError("samples != targets")
-
-    input_layer = InputLayer(200, 200)
-    hidden_layer_1 = HiddenLayer(200, 50)
-    last_layer = LastLayer(50, 10)
-
-    for i in range(len(samples)):
-        print("\nITERATION: %d" % (i+1))
-        print("SAMPLE SHAPE: %s" % str(samples[i].shape))
-        print("TARGET SHAPE: %s" % str(targets[i].shape))
-        input_layer.calc_activation_array(samples[i])
-        print("INPUT-L ACTIV SHAPE: %s" % str(input_layer.a.shape))
-        hidden_layer_1.train_layer(input_layer.a, last_layer.beta,
+    test = 100
+    samples, targets = data_gen(200, 10, test)
+    ok = 0.
+    err = 0.
+    for j in range(test):
+        print("\nTEST %s" % str(j))
+        input_layer.layer_output(samples[j])
+        hidden_layer_1.layer_output(input_layer.a, last_layer.beta,
                                    last_layer.w, last_layer.z)
-        print("HIDDEN-L WEIGHTS SHAPE: %s" % str(hidden_layer_1.w.shape))
-        print("HIDDEN-L OUTPUT SHAPE: %s" % str(hidden_layer_1.z.shape))
-        print("HIDDEN-L ACTIV SHAPE: %s" % str(hidden_layer_1.a.shape))
-        last_layer.train_layer(hidden_layer_1.a, targets[i])
-        print()
+        last_layer.layer_output(hidden_layer_1.a, targets[j])
+        max, index = getmaxindex(last_layer.z)
+        trg = convert_binary_to_number(targets[j])
+        print("TARGET")
+        print(trg)
+        print("OUTPUT")
+        print(str(max) + "  " + str(index))
+        print("RESULT")
+        if trg == index:
+            ok += 1
+            print("OK")
+        else:
+            err += 1
+            print("ERROR")
+
+    print("\nTOTAL RESULT")
+    print("OK: %s" % str(ok))
+    print("ERR: %s" % str(err))
 
 
 if __name__ == "__main__":
