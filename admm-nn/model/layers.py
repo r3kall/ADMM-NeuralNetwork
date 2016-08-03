@@ -5,8 +5,8 @@ import scipy.optimize
 from abc import ABCMeta
 
 from logger import defineLogger, Loggers
-from auxiliaries import check_dimensions, relu, binary_classification, \
-    linear, mean_squared_error
+from auxiliaries import check_dimensions, relu, linear,sigmoid, \
+    quadratic_cost
 
 __author__ = 'Lorenzo Rutigliano, lnz.rutigliano@gmail.com'
 
@@ -61,7 +61,7 @@ class Layer(metaclass=ABCMeta):
 class HiddenLayer(Layer):
     def __init__(self, n_in, n_out, a=None, z=None, w=None):
         super().__init__(n_in, n_out, a, z, w)
-        self.nl_func = relu
+        self.nl_func = sigmoid
         log.debug("Non-linear function: %s" % self.nl_func.__name__)
 
         if a is None:
@@ -91,7 +91,7 @@ class HiddenLayer(Layer):
 
     def layer_output(self, a_p, beta_f, weights_f, zeta_f):
         self.calc_activation_array(beta_f, weights_f, zeta_f)
-        self.calc_output_array(a_p)
+        #self.calc_output_array(a_p)
 
     def calc_weights(self, a_p):
         ap_ps = np.linalg.pinv(a_p)
@@ -104,11 +104,9 @@ class HiddenLayer(Layer):
         w1 = np.dot(wt, weights_f)
         i = np.identity(weights_f.shape[1], dtype='float64') * self.gamma
         m1 = np.linalg.inv(w1 + i)
-
         w2 = np.dot(wt, zeta_f)
         h = self.nl_func(self.z) * self.gamma
         m2 = w2 + h
-
         self.a = np.dot(m1, m2)
         #check_dimensions(self.a, self.n_out, 1)
 
@@ -135,10 +133,10 @@ class LastLayer(Layer):
     def __init__(self, n_in, n_out, a=None, z=None, w=None, lAmbda=None):
 
         super().__init__(n_in, n_out, a, z, w)
-        self.nl_func = linear
+        self.nl_func = sigmoid
 
         if z is None:
-            self.z = np.matlib.randn(self.n_out, 1)
+            self.z = np.fabs(np.matlib.randn(self.n_out, 1))
             log.debug("%s - Output array randomly initialized" % LastLayer.__name__.upper())
         else:
             self.z = z
@@ -164,7 +162,7 @@ class LastLayer(Layer):
 
     def layer_output(self, a_p, target):
         self.calc_output_array(a_p, target)
-        self.calc_lambda(a_p)
+        #self.calc_lambda(a_p)
 
     def calc_weights(self, a_p):
         ap_ps = np.linalg.pinv(a_p)
@@ -174,7 +172,7 @@ class LastLayer(Layer):
     def _output_array(self, z, sp, mpt, y):
         norm = z - mpt
         v2 = self.beta * (np.linalg.norm(norm) ** 2)
-        loss = binary_classification(z, y)
+        loss = quadratic_cost(z, y)
         return loss + sp + v2
 
     def calc_output_array(self, a_p, y):

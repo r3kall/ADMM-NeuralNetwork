@@ -32,26 +32,25 @@ def relu(x):
     return np.maximum(0, x)
 
 
+def sigmoid(x):
+    return 1.0 / (1.0 + np.exp(-x))
+
+
 def linear(x):
     return x
 
 
+def quadratic_cost(z, y):
+    return 0.5 * np.linalg.norm(z-y)**2
+
+
 def mean_squared_error(prediction, label):
     assert len(prediction) == len(label)
-    v = (prediction - label)**2
+    v = (prediction - label)
+    for i in range(len(label)):
+        v[i] **= 2
     s = sum(v)
     return s/(len(label)*2)
-
-
-def binary_classification(prediction, label):
-    assert len(prediction) == len(label)
-    num = 0.
-    dem = 0.
-    for i in range(len(prediction)):
-        if label[i] == 1:
-            num += max(0, 1 - prediction[i])
-        dem += 1
-    return num / dem
 
 
 def target_gen(classes, seed):

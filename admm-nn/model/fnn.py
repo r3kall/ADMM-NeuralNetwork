@@ -113,12 +113,12 @@ class FNN(object):
                 fun()
             self.last_layer.layer_output(self.hidden_layers_list[-1].a, targets[i])
             # measures
-            error += auxiliaries.binary_classification(self.last_layer.z, targets[i])
+            error += auxiliaries.mean_squared_error(self.last_layer.z, targets[i])
             y = converter(targets[i])
             mx, index = auxiliaries.get_max_index(self.last_layer.z)
             if index == y:
                 accuracy += 1
-        print("Error: %s" % str(error/n))
+        print("Error: %s" % str(np.round(error/n, decimals=6)))
         print("Accuracy: %s / %s" % (str(accuracy), n))
         return error/n
 
@@ -145,12 +145,12 @@ class FNN(object):
 
 
 def main():
-    fnn = FNN(768, 10, 100, 50)
+    fnn = FNN(768, 10, 100)
     c = 500
     samples, targets = auxiliaries.data_gen(768, 10, c)
     trn = {'x':samples, 'y':targets, 'n':c}
 
-    test = 100
+    test = 200
     samples, targets = auxiliaries.data_gen(768, 10, test)
     tst = {'x':samples, 'y':targets, 'n':test}
     print("Start training routine\n")
