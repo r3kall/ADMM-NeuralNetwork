@@ -4,8 +4,9 @@ import numpy.matlib
 import scipy.optimize
 from abc import ABCMeta
 
+import metrics
 from logger import defineLogger, Loggers
-from auxiliaries import check_dimensions, relu, linear,sigmoid, \
+from auxiliaries import check_dimensions, relu, linear, sigmoid, \
     quadratic_cost
 
 __author__ = 'Lorenzo Rutigliano, lnz.rutigliano@gmail.com'
@@ -72,7 +73,7 @@ class HiddenLayer(Layer):
             log.debug("Activation array user-defined")
 
         if z is None:
-            self.z = np.matlib.randn(self.n_out, 1)
+            self.z = np.fabs(np.matlib.randn(self.n_out, 1))
             log.debug("Output array randomly initialized")
         else:
             self.z = z
@@ -180,7 +181,8 @@ class LastLayer(Layer):
         sp = (np.dot(self.z.T, self.lAmbda))[0]
         mpt = np.squeeze(np.asarray(np.dot(self.w, a_p)))
         res = scipy.optimize.minimize(self._output_array, self.z, args=(sp, mpt, y))
-        self.z = np.reshape(res.x, (len(res.x), 1))
+        out = self.nl_func(res.x)
+        self.z = np.reshape(out, (len(out), 1))
         #check_dimensions(self.z, self.n_out, 1)
 
     def calc_lambda(self, a_p):

@@ -33,7 +33,7 @@ def relu(x):
 
 
 def sigmoid(x):
-    return 1.0 / (1.0 + np.exp(-x))
+    return np.minimum(1, relu(x))
 
 
 def linear(x):
@@ -44,13 +44,17 @@ def quadratic_cost(z, y):
     return 0.5 * np.linalg.norm(z-y)**2
 
 
-def mean_squared_error(prediction, label):
-    assert len(prediction) == len(label)
-    v = (prediction - label)
-    for i in range(len(label)):
-        v[i] **= 2
-    s = sum(v)
-    return s/(len(label)*2)
+def binary_hinge_loss(z, y):
+    num = 0.
+    for i in range(len(y)):
+        if y[i] == 0:
+            if z[i] <= 0:
+                num += 0
+            else:
+                num += z[i]
+        else:
+            num += max(0, 1 - z[i])
+    return num / len(y)
 
 
 def target_gen(classes, seed):
@@ -72,7 +76,7 @@ def _fill_array(array, occ, x):
 
 
 def sample_gen(dim_sample, seed):
-    occ = random.randint((dim_sample/4)+1, (dim_sample/2)+1)
+    occ = random.randint((dim_sample//10)+1, (dim_sample//4)+1)
     s = np.matlib.randn(dim_sample, 1)
     _fill_array(s, occ, seed)
     return s

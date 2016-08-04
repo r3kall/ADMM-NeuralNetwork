@@ -1,4 +1,6 @@
-import auxiliaries
+import time
+
+import auxiliaries, metrics
 from model.layers import InputLayer, HiddenLayer, LastLayer
 import numpy as np
 
@@ -113,7 +115,7 @@ class FNN(object):
                 fun()
             self.last_layer.layer_output(self.hidden_layers_list[-1].a, targets[i])
             # measures
-            error += auxiliaries.mean_squared_error(self.last_layer.z, targets[i])
+            error += metrics.mse(self.last_layer.z, targets[i])
             y = converter(targets[i])
             mx, index = auxiliaries.get_max_index(self.last_layer.z)
             if index == y:
@@ -136,21 +138,33 @@ class FNN(object):
     def train_until_converge(self, training_set, testing_set, threshold=0.1):
         acc = 100.
         epoch = 1
+        count = 0.
         while acc > threshold:
+            st = time.time()
             print("\nEPOCH [%s]" % str(epoch))
+            trst = time.time()
             self.train(training_set['x'], training_set['y'], training_set['n'])
+            tret = time.time() - trst
+            print("Training time: %s" % str(round(tret, 6)))
             acc = self.validate(testing_set['x'], testing_set['y'], testing_set['n'])
+            et = time.time() - st
+            print("Testing time: %s" % str(round(et-tret, 6)))
+            count += round(et, 6)
+            if epoch%5 == 0:
+                print("Epochs Mean Time: %s" % str(count/epoch))
+            else:
+                print("Epoch Time: %s" % str(et))
             epoch += 1
         return acc
 
 
 def main():
-    fnn = FNN(768, 10, 100)
-    c = 500
+    fnn = FNN(768, 10, 300)
+    c = 10000
     samples, targets = auxiliaries.data_gen(768, 10, c)
     trn = {'x':samples, 'y':targets, 'n':c}
 
-    test = 200
+    test = 3000
     samples, targets = auxiliaries.data_gen(768, 10, test)
     tst = {'x':samples, 'y':targets, 'n':test}
     print("Start training routine\n")
