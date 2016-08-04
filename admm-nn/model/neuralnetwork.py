@@ -1,4 +1,6 @@
 import numpy as np
+import numpy.matlib
+import time
 
 import auxiliaries
 from logger import defineLogger, Loggers
@@ -72,17 +74,80 @@ def activation_update(next_weight, next_layer_output, layer_nl_output, beta, gam
     return np.dot(m1, m2)
 
 
-def hidden_output_update(weight, activation_input):
+def argz(output, weight, activation, a, nl_fun, beta, gamma):
+    m1 = gamma*(np.linalg.norm(activation - nl_fun(output))**2)
+    m2 = beta*(np.linalg.norm(output - np.dot(weight, a))**2)
+    return m1 + m2
 
-    pass
+
+def minimize(z, res, epsilon, rate, maxiter, w, act, a, nl_fun, beta, gamma):
+    if res == 0:
+        return z, res
+    if maxiter == 0:
+        return z, res
+
+    upz = z + epsilon
+    n = argz(upz, w, act, a, nl_fun, beta, gamma)
+    if n < res:
+        return minimize(upz, n, epsilon, rate, maxiter-1,
+                        w, act, a, nl_fun, beta, gamma)
+
+    upz = z - epsilon
+    n = argz(upz, w, act, a, nl_fun, beta, gamma)
+    if n < res:
+        return minimize(upz, n, epsilon, rate, maxiter-1,
+                        w, act, a, nl_fun, beta, gamma)
+    return z, res
 
 
-def last_output_update():
-    pass
+def getmaxz(z, res, epsilon, w, act, a, nl_fun, beta, gamma):
+    n = argz(z+epsilon, w, act, a, nl_fun, beta, gamma)
+    if n < res:
+        return getmaxz(z+epsilon, n, epsilon, w, act, a, nl_fun, beta, gamma)
+    return z, res
+
+
+def getminz(z, res, epsilon, w, act, a, nl_fun, beta, gamma):
+    n = argz(z-epsilon, w, act, a, nl_fun, beta, gamma)
+    if n < res:
+        return getmaxz(z-epsilon, n, epsilon, w, act, a, nl_fun, beta, gamma)
+    return z, res
+
+
+def argminz(z, res, epsilon, maxiter, w, act, a, nl_fun, beta, gamma):
+    if maxiter == 0:
+        return z, res
+    n = argz(z + epsilon, w, act, a, nl_fun, beta, gamma)
+    if n < res:
+        upz, newres = getmaxz(z+epsilon, n, epsilon, w, act, a, nl_fun, beta, gamma)
+        #return argminz(upz, newres, epsilon/2, maxiter-1, w, act, a, nl_fun, beta, gamma)
+        return upz, newres
+    n = argz(z - epsilon, w, act, a, nl_fun, beta, gamma)
+    if n < res:
+        upz, newres = getmaxz(z - epsilon, n, epsilon, w, act, a, nl_fun, beta, gamma)
+        #return argminz(upz, newres, epsilon/2, maxiter-1, w, act, a, nl_fun, beta, gamma)
+        return upz, newres
+    return z, res
 
 
 def main():
-    pass
+    w = np.matlib.randn(300, 1000)
+    act = np.matlib.randn(300, 1)
+    a = np.matlib.randn(1000, 1)
+    nl = auxiliaries.relu
+    z = np.matlib.randn(300, 1)
+    res = argz(z, w, act, a, nl, 1, 10)
+    print("Original res: %s" % str(res))
+    st = time.time()
+    for i in range(100):
+        minimize(z, res, 0.1, 2, 50, w, act, a, nl, 1, 10)
+    endt = time.time() - st
+    print(endt)
+    st = time.time()
+    for i in range(100):
+        argminz(z, res, 0.1, 50, w, act, a, nl, 1, 10)
+    endt = time.time() - st
+    print(endt)
 
 
 if __name__ == "__main__":

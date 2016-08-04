@@ -62,7 +62,7 @@ class Layer(metaclass=ABCMeta):
 class HiddenLayer(Layer):
     def __init__(self, n_in, n_out, a=None, z=None, w=None):
         super().__init__(n_in, n_out, a, z, w)
-        self.nl_func = sigmoid
+        self.nl_func = relu
         log.debug("Non-linear function: %s" % self.nl_func.__name__)
 
         if a is None:
@@ -212,7 +212,11 @@ class InputLayer(Layer):
 
 
 def main():
-    pass
+    h = HiddenLayer(100, 10)
+    a = np.matlib.randn(100, 1)
+    h.calc_weights(a)
+    h.calc_output_array(a)
+    print(h.z)
 
 if __name__ == "__main__":
     main()

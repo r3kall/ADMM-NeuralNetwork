@@ -22,7 +22,7 @@ def test_activation_update_1(activation):
 
 def test_activation_update_2(activation):
     for i in range(10):
-        activation_update(activation[0][1], activation[1][1], activation[2][0], 1, 10)
+        activation_update(activation[0][1], activation[1][1], activation[2][0])
         #activation_update(activation[0][2], activation[1][2], activation[2][1], 1, 10)
         #activation_update(activation[0][3], activation[1][3], activation[2][2], 1, 10)
         #activation_update(activation[0][4], activation[1][4], activation[2][3], 1, 10)
