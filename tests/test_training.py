@@ -2,7 +2,6 @@ import pytest
 import numpy.matlib
 
 import auxiliaries
-from model.fnn import FNN
 from model.neuralnetwork import NeuralNetwork
 
 __author__ = "Lorenzo Rutigliano, lnz.rutigliano@gmail.com"
@@ -11,25 +10,17 @@ __author__ = "Lorenzo Rutigliano, lnz.rutigliano@gmail.com"
 @pytest.fixture()
 def newtrain():
     nn = NeuralNetwork(1000, 10, 300)
-    # x, y = auxiliaries.data_gen(1000, 10, 10)
-    x = numpy.matlib.randn(1000, 1)
-    y = numpy.matlib.randn(10, 1)
-    return nn, x, y
+    n = 100
+    x, y = auxiliaries.data_gen(1000, 10, n)
+    return nn, x, y, n
+
 
 def test_train_1(newtrain):
-    newtrain[0].train(newtrain[1], 0)
-
-
-@pytest.fixture()
-def oldtrain():
-    nn = FNN(1000, 10, 300)
-    x, y = auxiliaries.data_gen(1000, 10, 10)
-    return nn, x, y
-
-@pytest.mark.usefixtures("oldtrain")
-def test_train_2(oldtrain):
-    nn = oldtrain[0]
-    x = oldtrain[1]
-    y = oldtrain[2]
-    nn.train(x, y, 10)
-    nn.validate(x, y, 10)
+    c = 0
+    for i in range(newtrain[3]):
+        newtrain[0].train(newtrain[1][i], newtrain[2][i])
+        t = auxiliaries.convert_binary_to_number(newtrain[2][i])
+        m, o = auxiliaries.get_max_index(newtrain[0].z[-1])
+        if t == o:
+            c += 1
+    print("\nResult: %s/%s" % (str(c), str(newtrain[3])))

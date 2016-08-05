@@ -4,10 +4,13 @@ import numpy.matlib
 import scipy.optimize
 from abc import ABCMeta
 
+import time
+
 import metrics
 from logger import defineLogger, Loggers
 from auxiliaries import check_dimensions, relu, linear, sigmoid, \
     quadratic_cost
+import model.neuralnetwork
 
 __author__ = 'Lorenzo Rutigliano, lnz.rutigliano@gmail.com'
 
@@ -91,7 +94,8 @@ class HiddenLayer(Layer):
         check_dimensions(self.w, self.n_out, self.n_in)
 
     def layer_output(self, a_p, beta_f, weights_f, zeta_f):
-        self.calc_activation_array(beta_f, weights_f, zeta_f)
+        self.a = model.neuralnetwork.activation_update(weights_f, zeta_f, self.nl_func(self.z), 1, 10)
+        #self.calc_activation_array(beta_f, weights_f, zeta_f)
         #self.calc_output_array(a_p)
 
     def calc_weights(self, a_p):
@@ -128,16 +132,19 @@ class HiddenLayer(Layer):
         #check_dimensions(self.z, self.n_out, 1)
 
     def train_layer(self, a_p, beta_f, weights_f, zeta_f):
-        self.calc_weights(a_p)
-        self.calc_activation_array(beta_f, weights_f, zeta_f)
-        self.calc_output_array(a_p)
+        #self.calc_weights(a_p)
+        #self.calc_activation_array(beta_f, weights_f, zeta_f)
+        #self.calc_output_array(a_p)
+        self.w = model.neuralnetwork.weight_update(self.z, a_p)
+        self.a = model.neuralnetwork.activation_update(weights_f, zeta_f, self.nl_func(self.z), 1, 10)
+        self.z = model.neuralnetwork.minz(self.z, self.w, self.a, a_p, self.nl_func, 1, 10)
 
 
 class LastLayer(Layer):
     def __init__(self, n_in, n_out, a=None, z=None, w=None, lAmbda=None):
 
         super().__init__(n_in, n_out, a, z, w)
-        self.nl_func = sigmoid
+        self.nl_func = relu
 
         if z is None:
             self.z = np.fabs(np.matlib.randn(self.n_out, 1))
@@ -195,13 +202,22 @@ class LastLayer(Layer):
         #check_dimensions(self.lAmbda, self.n_out, 1)
 
     def train_layer(self, a_p, target):
-        self.calc_weights(a_p)
-        self.calc_output_array(a_p, target)
-        self.calc_lambda(a_p)
+        #self.calc_weights(a_p)
+        #self.calc_output_array(a_p, target)
+        #self.calc_lambda(a_p)
+        self.w = model.neuralnetwork.weight_update(self.z, a_p)
+        mp = np.dot(self.w, a_p)
+        self.z = model.neuralnetwork.minlastz(self.z, target, quadratic_cost,
+                                              self.z, self.lAmbda, mp, 1)
+        self.lAmbda = model.neuralnetwork.lambda_update(self.z, mp, 1)
 
     def warm_start(self, a_p, target):
-        self.calc_weights(a_p)
-        self.calc_output_array(a_p, target)
+        #self.calc_weights(a_p)
+        #self.calc_output_array(a_p, target)
+        self.w = model.neuralnetwork.weight_update(self.z, a_p)
+        mp = np.dot(self.w, a_p)
+        self.z = model.neuralnetwork.minlastz(self.z, target, quadratic_cost,
+                                              self.z, self.lAmbda, mp, 1)
 
 
 class InputLayer(Layer):
@@ -215,11 +231,7 @@ class InputLayer(Layer):
 
 
 def main():
-    h = HiddenLayer(100, 10)
-    a = np.matlib.randn(100, 1)
-    h.calc_weights(a)
-    h.calc_output_array(a)
-    print(h.z)
+    pass
 
 if __name__ == "__main__":
     main()

@@ -160,11 +160,11 @@ class FNN(object):
 
 def main():
     fnn = FNN(768, 10, 300)
-    c = 10000
+    c = 100
     samples, targets = auxiliaries.data_gen(768, 10, c)
     trn = {'x':samples, 'y':targets, 'n':c}
 
-    test = 3000
+    test = 250
     samples, targets = auxiliaries.data_gen(768, 10, test)
     tst = {'x':samples, 'y':targets, 'n':test}
     print("Start training routine\n")

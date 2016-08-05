@@ -2,6 +2,7 @@ import numpy as np
 import numpy.matlib
 import scipy as sp
 import scipy.optimize
+import time
 
 import auxiliaries
 from logger import defineLogger, Loggers
@@ -43,14 +44,15 @@ class NeuralNetwork(object):
         self.a.append(self.nl_func(self.z[-1]))
         self.dim = len(layers) + 1
 
-
     def train(self, a, y):
-        self.w[0] == weight_update(self.z[0], a)
+        self.w[0] = weight_update(self.z[0], a)
         self.a[0] = activation_update(self.w[1], self.z[1], self.a[0],
                                       self.beta, self.gamma)
-
+        #st = time.time()
         self.z[0] = minz(self.z[0], self.w[0], self.a[0], a, auxiliaries.relu, 1, 10)
-        """
+        #endt = time.time() - st
+        #print("TIME: %s\n" % str(endt))
+
         for i in range(1, self.dim-1):
             self.w[i] = weight_update(self.z[i], self.a[i-1])
             self.a[i] = activation_update(self.w[i+1], self.z[i+1], self.a[i],
@@ -63,7 +65,6 @@ class NeuralNetwork(object):
         self.z[-1] == minlastz(self.z[-1], y, self.loss_func, self.z[-1],
                                self.lAmbda, mp, self.beta)
         self.lAmbda += lambda_update(self.z[-1], mp, self.beta)
-        """
 
 
 def weight_update(layer_output, activation_input):
@@ -93,18 +94,18 @@ def activation_update(next_weight, next_layer_output, layer_nl_output, beta, gam
 def argz(z, mpt, activation, nl_fun, beta, gamma):
     norm1 = activation.ravel() - nl_fun(z)
     m1 = gamma * (np.linalg.norm(norm1)**2)
-    norm2 = z - mpt.ravel()
+    norm2 = z - mpt
     m2 = beta * (np.linalg.norm(norm2)**2)
     return m1 + m2
 
 
 def minz(z, w, act, a, nl_fun, beta, gamma):
-    mpt = np.dot(w, a)
+    mpt = np.squeeze(np.asarray(np.dot(w, a)))
     #org = argz(z, mpt, act, nl_fun, beta, gamma)
     #print("\nOriginal score: %s" % str(org))
-    res = sp.optimize.minimize(argz, z, args=(mpt, act, nl_fun, beta, gamma))
+    res = sp.optimize.minimize(argz, z, args=(mpt, act, nl_fun, beta, gamma),
+                               method='CG', options={'maxiter': 100})
     #print("\nNew score: %s" % str(res.fun))
-    #print(res)
     return np.reshape(res.x, (len(res.x), 1))
 
 
@@ -124,7 +125,10 @@ def lambda_update(zl, mpt, beta):
 
 
 def main():
-    pass
+    a = np.matlib.randn(500, 1)
+    y = np.fabs(np.matlib.randn(10, 1))
+    nn = NeuralNetwork(500, 10, 100)
+    nn.train(a, y)
 
 
 if __name__ == "__main__":
