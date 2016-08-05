@@ -120,8 +120,11 @@ class HiddenLayer(Layer):
 
     def calc_output_array(self, a_p):
         mpt = np.squeeze(np.asarray(np.dot(self.w, a_p)))
+        #first_res = self._output_array(self.z, mpt)
+        #print("\nOriginal Score: %s" % str(first_res))
         res = scipy.optimize.minimize(self._output_array, self.z, args=mpt)
         self.z = np.reshape(res.x, (len(res.x), 1))
+        #print("\nNew Score: %s" % str(res.fun))
         #check_dimensions(self.z, self.n_out, 1)
 
     def train_layer(self, a_p, beta_f, weights_f, zeta_f):

@@ -1,6 +1,7 @@
 import numpy as np
 import numpy.matlib
-import time
+import scipy as sp
+import scipy.optimize
 
 import auxiliaries
 from logger import defineLogger, Loggers
@@ -24,6 +25,7 @@ class NeuralNetwork(object):
         self.w = []
         self.z = []
         self.a = []
+        self.lAmbda = np.zeros((classes, 1), dtype='float64')
 
         for i in range(len(layers)):
             if i == 0:
@@ -31,23 +33,37 @@ class NeuralNetwork(object):
             else:
                 w = np.matlib.randn(layers[i], layers[i-1])
             z = np.matlib.randn(layers[i], 1)
+            a = np.matlib.randn(layers[i], 1)
             self.w.append(w)
             self.z.append(z)
-            self.a.append(self.nl_func(z))
+            self.a.append(a)
 
         self.w.append(np.matlib.randn(classes, layers[-1]))
         self.z.append(np.matlib.randn(classes, 1))
         self.a.append(self.nl_func(self.z[-1]))
         self.dim = len(layers) + 1
 
-    def train(self, a):
-        for i in range(self.dim-1):
-            if i == 0:
-                self.w[i] == weight_update(self.z[i], a)
-            else:
-                self.w[i] = weight_update(self.z[i], self.a[i-1])
+
+    def train(self, a, y):
+        self.w[0] == weight_update(self.z[0], a)
+        self.a[0] = activation_update(self.w[1], self.z[1], self.a[0],
+                                      self.beta, self.gamma)
+
+        self.z[0] = minz(self.z[0], self.w[0], self.a[0], a, auxiliaries.relu, 1, 10)
+        """
+        for i in range(1, self.dim-1):
+            self.w[i] = weight_update(self.z[i], self.a[i-1])
             self.a[i] = activation_update(self.w[i+1], self.z[i+1], self.a[i],
                                           self.beta, self.gamma)
+            self.z[i] = minz(self.z[i], self.w[i], self.a[i], self.a[i - 1],
+                             self.nl_func, self.beta, self.gamma)
+
+        self.w[-1] == weight_update(self.z[-1], self.z[-2])
+        mp = np.dot(self.w[-1], self.a[-2])
+        self.z[-1] == minlastz(self.z[-1], y, self.loss_func, self.z[-1],
+                               self.lAmbda, mp, self.beta)
+        self.lAmbda += lambda_update(self.z[-1], mp, self.beta)
+        """
 
 
 def weight_update(layer_output, activation_input):
@@ -74,80 +90,41 @@ def activation_update(next_weight, next_layer_output, layer_nl_output, beta, gam
     return np.dot(m1, m2)
 
 
-def argz(output, weight, activation, a, nl_fun, beta, gamma):
-    m1 = gamma*(np.linalg.norm(activation - nl_fun(output))**2)
-    m2 = beta*(np.linalg.norm(output - np.dot(weight, a))**2)
+def argz(z, mpt, activation, nl_fun, beta, gamma):
+    norm1 = activation.ravel() - nl_fun(z)
+    m1 = gamma * (np.linalg.norm(norm1)**2)
+    norm2 = z - mpt.ravel()
+    m2 = beta * (np.linalg.norm(norm2)**2)
     return m1 + m2
 
 
-def minimize(z, res, epsilon, rate, maxiter, w, act, a, nl_fun, beta, gamma):
-    if res == 0:
-        return z, res
-    if maxiter == 0:
-        return z, res
-
-    upz = z + epsilon
-    n = argz(upz, w, act, a, nl_fun, beta, gamma)
-    if n < res:
-        return minimize(upz, n, epsilon, rate, maxiter-1,
-                        w, act, a, nl_fun, beta, gamma)
-
-    upz = z - epsilon
-    n = argz(upz, w, act, a, nl_fun, beta, gamma)
-    if n < res:
-        return minimize(upz, n, epsilon, rate, maxiter-1,
-                        w, act, a, nl_fun, beta, gamma)
-    return z, res
+def minz(z, w, act, a, nl_fun, beta, gamma):
+    mpt = np.dot(w, a)
+    #org = argz(z, mpt, act, nl_fun, beta, gamma)
+    #print("\nOriginal score: %s" % str(org))
+    res = sp.optimize.minimize(argz, z, args=(mpt, act, nl_fun, beta, gamma))
+    #print("\nNew score: %s" % str(res.fun))
+    #print(res)
+    return np.reshape(res.x, (len(res.x), 1))
 
 
-def getmaxz(z, res, epsilon, w, act, a, nl_fun, beta, gamma):
-    n = argz(z+epsilon, w, act, a, nl_fun, beta, gamma)
-    if n < res:
-        return getmaxz(z+epsilon, n, epsilon, w, act, a, nl_fun, beta, gamma)
-    return z, res
+def arglastz(z, y, loss_func, vp, mp, beta):
+    m3 = beta * (np.linalg.norm(z - mp.ravel())**2)
+    return loss_func(z, y.ravel()) + vp + m3
 
 
-def getminz(z, res, epsilon, w, act, a, nl_fun, beta, gamma):
-    n = argz(z-epsilon, w, act, a, nl_fun, beta, gamma)
-    if n < res:
-        return getmaxz(z-epsilon, n, epsilon, w, act, a, nl_fun, beta, gamma)
-    return z, res
+def minlastz(z, y, loss_func, zl, lAmbda, mp, beta):
+    vp = np.dot(zl.T, lAmbda)
+    res = sp.optimize.minimize(arglastz, z, args=(y, loss_func, vp, mp, beta))
+    return np.reshape(res.x, (len(res.x), 1))
 
 
-def argminz(z, res, epsilon, maxiter, w, act, a, nl_fun, beta, gamma):
-    if maxiter == 0:
-        return z, res
-    n = argz(z + epsilon, w, act, a, nl_fun, beta, gamma)
-    if n < res:
-        upz, newres = getmaxz(z+epsilon, n, epsilon, w, act, a, nl_fun, beta, gamma)
-        #return argminz(upz, newres, epsilon/2, maxiter-1, w, act, a, nl_fun, beta, gamma)
-        return upz, newres
-    n = argz(z - epsilon, w, act, a, nl_fun, beta, gamma)
-    if n < res:
-        upz, newres = getmaxz(z - epsilon, n, epsilon, w, act, a, nl_fun, beta, gamma)
-        #return argminz(upz, newres, epsilon/2, maxiter-1, w, act, a, nl_fun, beta, gamma)
-        return upz, newres
-    return z, res
+def lambda_update(zl, mpt, beta):
+    return beta * (zl - mpt)
 
 
 def main():
-    w = np.matlib.randn(300, 1000)
-    act = np.matlib.randn(300, 1)
-    a = np.matlib.randn(1000, 1)
-    nl = auxiliaries.relu
-    z = np.matlib.randn(300, 1)
-    res = argz(z, w, act, a, nl, 1, 10)
-    print("Original res: %s" % str(res))
-    st = time.time()
-    for i in range(100):
-        minimize(z, res, 0.1, 2, 50, w, act, a, nl, 1, 10)
-    endt = time.time() - st
-    print(endt)
-    st = time.time()
-    for i in range(100):
-        argminz(z, res, 0.1, 50, w, act, a, nl, 1, 10)
-    endt = time.time() - st
-    print(endt)
+    pass
 
 
 if __name__ == "__main__":
