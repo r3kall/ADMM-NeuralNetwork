@@ -76,7 +76,7 @@ def _fill_array(array, occ, x):
 
 
 def sample_gen(dim_sample, seed):
-    occ = random.randint((dim_sample//10)+1, (dim_sample//4)+1)
+    occ = random.randint((dim_sample//4)+1, (dim_sample))
     s = np.matlib.randn(dim_sample, 1)
     _fill_array(s, occ, seed)
     return s
