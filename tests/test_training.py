@@ -1,5 +1,6 @@
 import pytest
 import time
+import numpy
 
 import auxiliaries
 from model.neuralnetwork import NeuralNetwork
@@ -7,23 +8,32 @@ from model.neuralnetwork import NeuralNetwork
 __author__ = "Lorenzo Rutigliano, lnz.rutigliano@gmail.com"
 
 
-@pytest.fixture()
+def generator(dim, classes):
+    seed = numpy.random.randint(0, 10)
+    sample = auxiliaries.sample_gen(dim, seed)
+    target = auxiliaries.target_gen(classes, seed)
+    return sample, target, seed
+
+
+@pytest.fixture(scope='module')
 def train():
-    nn = NeuralNetwork(1000, 10, 300)
-    n = 10
-    x, y = auxiliaries.data_gen(1000, 10, n)
-    return nn, x, y, n
+    pass
 
 
 def test_train_1(train):
-    st = time.time()
+    in_dim = 768
+    nn = NeuralNetwork(in_dim, 10, 200)
+    dim = 1000
+    for i in range(dim):
+        sample, target, seed = generator(in_dim, 10)
+        nn.train(sample, target)
+
     c = 0
-    for i in range(train[3]):
-        train[0].train(train[1][i], train[2][i])
-        t = auxiliaries.convert_binary_to_number(train[2][i])
-        m, o = auxiliaries.get_max_index(train[0].z[-1])
-        if t == o:
+    test = 200
+    for i in range(test):
+        sample, target, seed = generator(in_dim, 10)
+        zl = nn.feedforward(sample, target)
+        index = auxiliaries.get_max_index(zl)
+        if index == float(seed):
             c += 1
-    endt = time.time() - st
-    print("\nResult: %s/%s" % (str(c), str(train[3])))
-    print("Time: %s" % str(endt))
+    print("%s/%s" % (c, test))

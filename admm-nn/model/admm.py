@@ -12,13 +12,13 @@ def weight_update(layer_output, activation_input):
 
 
 def _activation_inverse(next_weight, beta, gamma):
-    m1 = np.dot((next_weight.T * beta), next_weight)
+    m1 = np.dot((next_weight.H * beta), next_weight)
     m2 = np.identity(next_weight.shape[1], dtype='float64') * gamma
     return np.linalg.inv(m1 + m2)
 
 
 def _activation_formulate(next_weight, next_layer_output, layer_nl_output, beta, gamma):
-    m1 = np.dot((next_weight.T * beta), next_layer_output)
+    m1 = np.dot((next_weight.H * beta), next_layer_output)
     m2 = gamma * layer_nl_output
     return m1 + m2
 
@@ -54,7 +54,8 @@ def arglastz(z, y, loss_func, vp, mp, beta):
 
 
 def minlastz(z, y, loss_func, zl, lAmbda, mp, beta):
-    vp = np.dot(zl.T, lAmbda)
+    vp = np.dot(zl.T, lAmbda)[0][0]
+    #print(vp)
     res = sp.optimize.minimize(arglastz, z, args=(y, loss_func, vp, mp, beta))
     return np.reshape(res.x, (len(res.x), 1))
 

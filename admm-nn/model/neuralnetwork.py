@@ -46,7 +46,7 @@ class NeuralNetwork(object):
         self.dim = len(layers) + 1
 
     def train(self, a, y):
-        self._train_hidden_layers(a, y)
+        self._train_hidden_layers(a)
         self.w[-1] = weight_update(self.z[-1], self.a[-2])
         mp = np.dot(self.w[-1], self.a[-2])
         self.z[-1] = minlastz(self.z[-1], y, self.loss_func, self.z[-1],
@@ -54,13 +54,13 @@ class NeuralNetwork(object):
         self.lAmbda += lambda_update(self.z[-1], mp, self.beta)
 
     def warmstart(self, a, y):
-        self._train_hidden_layers(a, y)
+        self._train_hidden_layers(a)
         self.w[-1] = weight_update(self.z[-1], self.a[-2])
         mp = np.dot(self.w[-1], self.a[-2])
         self.z[-1] = minlastz(self.z[-1], y, self.loss_func, self.z[-1],
                               self.lAmbda, mp, self.beta)
 
-    def _train_hidden_layers(self, a, y):
+    def _train_hidden_layers(self, a):
         self.w[0] = weight_update(self.z[0], a)
         self.a[0] = activation_update(self.w[1], self.z[1], self.nl_func(self.z[0]),
                                       self.beta, self.gamma)
@@ -79,9 +79,9 @@ class NeuralNetwork(object):
                              self.nl_func, self.beta, self.gamma)
 
     def feedforward(self, a):
-        for i in range(self.dim):
+        for i in range(self.dim-1):
             a = self.nl_func(np.dot(self.w[i], a))
-        return a
+        return np.dot(self.w[-1], a)
 
 
 def main():

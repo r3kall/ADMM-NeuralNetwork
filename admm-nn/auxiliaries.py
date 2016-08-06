@@ -45,6 +45,7 @@ def quadratic_cost(z, y):
 
 
 def binary_hinge_loss(z, y):
+    assert len(z) == len(y)
     num = 0.
     for i in range(len(y)):
         if y[i] == 0:
@@ -76,7 +77,7 @@ def _fill_array(array, occ, x):
 
 
 def sample_gen(dim_sample, seed):
-    occ = random.randint((dim_sample//4)+1, (dim_sample))
+    occ = random.randint((dim_sample//8)+1, (dim_sample//2)+1)
     s = np.matlib.randn(dim_sample, 1)
     _fill_array(s, occ, seed)
     return s
@@ -86,7 +87,7 @@ def data_gen(dim_sample, classes, n):
     targets = []
     samples = []
     for i in range(n):
-        seed = random.randint(0, 9)
+        seed = random.randint(0, 10)
         targets.append(target_gen(classes, seed))
         samples.append(sample_gen(dim_sample, seed))
     return samples, targets
@@ -99,7 +100,7 @@ def get_max_index(a):
         if a[i] > mx:
             mx = a[i]
             index = i
-    return mx, float(index)
+    return index
 
 
 def get_percentage(percentage, n):
