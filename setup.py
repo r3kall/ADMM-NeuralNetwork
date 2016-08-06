@@ -8,5 +8,9 @@ setup(
     license='',
     author='lnz',
     author_email='lnz.rutigliano@gmail.com',
-    description=''
+    description='',
+    install_requires=[
+        'numpy',
+        'scipy'
+    ]
 )

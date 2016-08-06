@@ -55,8 +55,8 @@ def arglastz(z, y, loss_func, vp, mp, beta):
 
 def minlastz(z, y, loss_func, zl, lAmbda, mp, beta):
     vp = np.dot(zl.T, lAmbda)[0][0]
-    #print(vp)
     res = sp.optimize.minimize(arglastz, z, args=(y, loss_func, vp, mp, beta))
+    #print(res.fun)
     return np.reshape(res.x, (len(res.x), 1))
 
 

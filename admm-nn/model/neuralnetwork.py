@@ -1,8 +1,5 @@
 import numpy as np
 import numpy.matlib
-import scipy as sp
-import scipy.optimize
-import time
 
 import auxiliaries
 from logger import defineLogger, Loggers

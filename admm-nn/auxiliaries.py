@@ -45,17 +45,7 @@ def quadratic_cost(z, y):
 
 
 def binary_hinge_loss(z, y):
-    assert len(z) == len(y)
-    num = 0.
-    for i in range(len(y)):
-        if y[i] == 0:
-            if z[i] <= 0:
-                num += 0
-            else:
-                num += z[i]
-        else:
-            num += max(0, 1 - z[i])
-    return num / len(y)
+    return np.maximum(0, 1 - np.dot(z.T, y))
 
 
 def target_gen(classes, seed):
@@ -64,22 +54,23 @@ def target_gen(classes, seed):
     return t
 
 
-def _fill_array(array, occ, x):
+def _fill_array(dim_sample, occ, x):
+    s = np.full((dim_sample, 1), 0.005, dtype='float64')
     while occ > 0:
-        i = random.randint(0, len(array)-1)
-        c = (i+10) % len(array)
-        if array[i] != x:
-            array[i] = float(x)
+        i = random.randint(0, len(s)-1)
+        c = (i+10) % len(s)
+        if s[i] != x:
+            s[i] = float(x)
             occ -= 1
-        elif array[c] != x:
-            array[c] = float(x)
+        elif s[c] != x:
+            s[c] = float(x)
             occ -= 1
+    return s
 
 
-def sample_gen(dim_sample, seed):
-    occ = random.randint((dim_sample//8)+1, (dim_sample//2)+1)
-    s = np.matlib.randn(dim_sample, 1)
-    _fill_array(s, occ, seed)
+def sample_gen(dim_sample, seed, alpha):
+    occ = random.randint((dim_sample//2)+1, (dim_sample-1))
+    s = _fill_array(dim_sample, occ, seed/alpha)
     return s
 
 
@@ -87,9 +78,9 @@ def data_gen(dim_sample, classes, n):
     targets = []
     samples = []
     for i in range(n):
-        seed = random.randint(0, 10)
+        seed = random.randint(0, 9)
         targets.append(target_gen(classes, seed))
-        samples.append(sample_gen(dim_sample, seed))
+        samples.append(sample_gen(dim_sample, seed, 10))
     return samples, targets
 
 
