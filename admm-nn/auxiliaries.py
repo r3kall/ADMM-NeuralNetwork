@@ -49,13 +49,13 @@ def binary_hinge_loss(z, y):
 
 
 def target_gen(classes, seed):
-    t = np.full((classes, 1), 0, dtype='float64')
+    t = np.full((classes), 0, dtype='float64')
     t[seed] = 1
     return t
 
 
 def _fill_array(dim_sample, occ, x):
-    s = np.full((dim_sample, 1), 0.005, dtype='float64')
+    s = np.full(dim_sample, 0.005, dtype='float64')
     while occ > 0:
         i = random.randint(0, len(s)-1)
         c = (i+10) % len(s)
@@ -74,13 +74,13 @@ def sample_gen(dim_sample, seed, alpha):
     return s
 
 
-def data_gen(dim_sample, classes, n):
-    targets = []
-    samples = []
+def data_gen(feature, classes, n):
+    targets = np.zeros((classes, n))
+    samples = np.zeros((feature, n))
     for i in range(n):
         seed = random.randint(0, 9)
-        targets.append(target_gen(classes, seed))
-        samples.append(sample_gen(dim_sample, seed, 10))
+        targets[:, i] = target_gen(classes, seed)
+        samples[:, i] = sample_gen(feature, seed, 10)
     return samples, targets
 
 

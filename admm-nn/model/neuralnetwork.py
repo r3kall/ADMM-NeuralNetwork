@@ -1,5 +1,6 @@
 import numpy as np
 import numpy.matlib
+import scipy.optimize
 
 import auxiliaries
 from logger import defineLogger, Loggers
@@ -11,12 +12,12 @@ log = defineLogger(Loggers.STANDARD)
 
 
 class NeuralNetwork(object):
-    def __init__(self, sample_length, classes, *layers,
+    def __init__(self, features, classes, training_space, *layers,
                  beta=1, gamma=10,
                  non_linear_func=auxiliaries.relu,
-                 loss_func=auxiliaries.quadratic_cost):
+                 loss_func=auxiliaries.binary_hinge_loss):
 
-        assert len(layers) > 0 and sample_length > 0 and classes > 0
+        assert len(layers) > 0 and features > 0 and classes > 0 and training_space > 0
         self.nl_func = non_linear_func
         self.loss_func = loss_func
         self.beta = beta
@@ -24,21 +25,21 @@ class NeuralNetwork(object):
         self.w = []
         self.z = []
         self.a = []
-        self.lAmbda = np.zeros((classes, 1), dtype='float64')
+        self.lAmbda = np.zeros((classes, training_space), dtype='float64')
 
         for i in range(len(layers)):
             if i == 0:
-                w = np.matlib.randn(layers[0], sample_length)
+                w = np.matlib.randn(layers[0], features)
             else:
                 w = np.matlib.randn(layers[i], layers[i-1])
-            z = np.matlib.randn(layers[i], 1)
-            a = np.matlib.randn(layers[i], 1)
+            z = np.matlib.randn(layers[i], training_space)
+            a = np.matlib.randn(layers[i], training_space)
             self.w.append(w)
             self.z.append(z)
             self.a.append(a)
 
         self.w.append(np.matlib.randn(classes, layers[-1]))
-        self.z.append(np.matlib.randn(classes, 1))
+        self.z.append(np.matlib.randn(classes, training_space))
         self.a.append(self.nl_func(self.z[-1]))
         self.dim = len(layers) + 1
 
@@ -83,6 +84,7 @@ class NeuralNetwork(object):
 
 def main():
     pass
+
 
 if __name__ == "__main__":
     main()
