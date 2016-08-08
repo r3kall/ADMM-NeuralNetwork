@@ -79,6 +79,7 @@ class NeuralNetwork(object):
     def feedforward(self, a):
         for i in range(self.dim-1):
             a = self.nl_func(np.dot(self.w[i], a))
+        #return a
         return np.dot(self.w[-1], a)
 
 

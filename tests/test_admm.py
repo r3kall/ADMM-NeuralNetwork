@@ -4,7 +4,7 @@ import numpy as np
 import numpy.matlib
 
 import auxiliaries
-from model.admm import weight_update, activation_update, minz, minlastz, argz
+from model.admm import weight_update, activation_update, minz, minlastz, argz, lambda_update
 
 __author__ = "Lorenzo Rutigliano, lnz.rutigliano@gmail.com"
 
@@ -32,11 +32,30 @@ def test_activation():
 
 def test_minz():
     print()
-    n = 10
-    w = np.matlib.randn(300, 1000)
-    z = np.matlib.randn(300, n)
-    act = np.matlib.randn(300, n)
-    a = np.matlib.randn(1000, n)
+    n = 102
+    indim = 300
+    outdim = 80
+    w = np.matlib.randn(outdim, indim)
+    z = np.matlib.randn(outdim, n)
+    act = np.matlib.randn(outdim, n)
+    a = np.matlib.randn(indim, n)
 
     z = minz(z, w, act, a, auxiliaries.relu, 1, 10)
-    #print("Output shape: %s" % str(z.shape))
+    print("Output shape: %s" % str(z.shape))
+
+
+def test_minlastz():
+    print()
+    n = 12
+    w = np.matlib.randn(10, 400)
+    z = np.matlib.randn(10, n)
+    a = np.matlib.randn(400, n)
+    l = np.matlib.randn(10, n)
+    y = np.matlib.randn(10, n)
+    mp = np.dot(w, a)
+
+    res = minlastz(z, y, auxiliaries.quadratic_cost, l, mp, z, 1)
+    print("Final shape: %s" % str(res.shape))
+    lmb = lambda_update(res, mp, 1)
+    print("Lambda shape: %s" % str(lmb.shape))
+

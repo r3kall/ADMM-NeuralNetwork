@@ -33,10 +33,10 @@ def activation_update(next_weight, next_layer_output, layer_nl_output, beta, gam
 
 def argz(z, mpt, activation, nl_fun, beta, gamma):
     #st = time.time()
-    norm1 = activation.ravel() - nl_fun(z)
-    m1 = gamma * (np.linalg.norm(norm1)**2)
-    norm2 = z - mpt.ravel()
-    m2 = beta * (np.linalg.norm(norm2)**2)
+    norm1 = activation.flatten() - nl_fun(z)
+    m1 = gamma * (np.linalg.norm(norm1, ord=1)**2)
+    norm2 = z - mpt.flatten()
+    m2 = beta * (np.linalg.norm(norm2, ord=1)**2)
     #endt = time.time() - st
     #print("Argz time: %s" % str(round(endt, 4)))
     return m1 + m2
@@ -47,26 +47,31 @@ def minz(z, w, act, a, nl_fun, beta, gamma):
     for j in range(z.shape[1]):
         #org = argz(z[:, j], mpt[:, j], act[:, j], nl_fun, beta, gamma)
         #print("\nOriginal score: %s" % str(org))
-        st = time.time()
+        #st = time.time()
         res = sp.optimize.minimize(argz, z[:, j], args=(mpt[:, j], act[:, j], nl_fun, beta, gamma),
                                    method='L-BFGS-B', options={'maxiter': 1000, 'disp': False})
-        endt = time.time() - st
+        #endt = time.time() - st
         #print("Argz time: %s" % str(round(endt, 4)))
-        #z[:, j] = np.reshape(res.x, (z.shape[0], 1))
+        z[:, j] = np.reshape(res.x, (z.shape[0], 1))
         #print("New score: %s" % str(res.fun))
     return z
 
 
 def arglastz(z, y, loss_func, vp, mp, beta):
-    m3 = beta * (np.linalg.norm(z - mp.ravel()[0])**2)
-    return loss_func(z, y.ravel()) + vp + m3
+    norm = z - mp
+    m3 = beta * (np.linalg.norm(norm, ord=1)**2)
+    loss = loss_func(z, y)
+    return loss + vp + m3
 
 
-def minlastz(z, y, loss_func, zl, lAmbda, mp, beta):
-    vp = np.inner(zl.ravel(), lAmbda.ravel())
-    res = sp.optimize.minimize(arglastz, z, args=(y, loss_func, vp, mp, beta))
-    #print(res.fun)
-    return np.reshape(res.x, (z.shape[0], z.shape[1]))
+def minlastz(z, y, loss_func, lAmbda, mp, zl, beta):
+    assert z.shape[1] == y.shape[1] == lAmbda.shape[1] == mp.shape[1]
+    for j in range(z.shape[1]):
+        vp = np.ravel(np.dot(zl[:, j].T, lAmbda[:, j]))[0]
+        res = sp.optimize.minimize(arglastz, z[:, j],
+                                   args=(y[:, j], loss_func, vp, mp[:, j], beta))
+        z[:, j] = np.reshape(res.x, (z.shape[0], 1))
+    return z
 
 
 def lambda_update(zl, mpt, beta):
