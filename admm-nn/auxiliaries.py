@@ -41,7 +41,7 @@ def linear(x):
 
 
 def quadratic_cost(z, y):
-    return 0.5 * np.linalg.norm(z-y)**2
+    return 0.5 * (np.linalg.norm(z - y, ord=2) ** 2)
 
 
 def binary_hinge_loss(z, y):

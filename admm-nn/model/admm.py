@@ -31,35 +31,34 @@ def activation_update(next_weight, next_layer_output, layer_nl_output, beta, gam
     return np.dot(m1, m2)
 
 
-def argz(z, mpt, activation, nl_fun, beta, gamma):
-    #st = time.time()
-    norm1 = activation.flatten() - nl_fun(z)
-    m1 = gamma * (np.linalg.norm(norm1, ord=1)**2)
-    norm2 = z - mpt.flatten()
-    m2 = beta * (np.linalg.norm(norm2, ord=1)**2)
-    #endt = time.time() - st
-    #print("Argz time: %s" % str(round(endt, 4)))
+def argz(z, a, mp, nl_func, beta, gamma):
+    norm1 = a - nl_func(z)
+    norm2 = z - mp
+    m1 = gamma * (np.linalg.norm(norm1, ord=2) ** 2)
+    m2 = beta * (np.linalg.norm(norm2, ord=2) ** 2)
     return m1 + m2
 
 
-def minz(z, w, act, a, nl_fun, beta, gamma):
-    mpt = np.dot(w, a)
+def minz(zv, zm, pos, dim, a, mp, nl_func, beta, gamma):
+    zv = np.reshape(zv, (dim, 1))
+    zm[:, pos] = zv
+    return argz(zm, a, mp, nl_func, beta, gamma)
+
+
+def argminz(z, a, w, a_in, nl_func, beta, gamma):
+    mp = np.dot(w, a_in)
+    outdim = z.shape[0]
+    print(z.shape[1])
+    print(outdim)
     for j in range(z.shape[1]):
-        #org = argz(z[:, j], mpt[:, j], act[:, j], nl_fun, beta, gamma)
-        #print("\nOriginal score: %s" % str(org))
-        #st = time.time()
-        res = sp.optimize.minimize(argz, z[:, j], args=(mpt[:, j], act[:, j], nl_fun, beta, gamma),
-                                   method='L-BFGS-B', options={'maxiter': 1000, 'disp': False})
-        #endt = time.time() - st
-        #print("Argz time: %s" % str(round(endt, 4)))
-        z[:, j] = np.reshape(res.x, (z.shape[0], 1))
-        #print("New score: %s" % str(res.fun))
+        res = sp.optimize.minimize(minz, z[:, j], args=(z, j, outdim, a, mp, nl_func, beta, gamma))
+        z[:, j] = np.reshape(res.x, (outdim, 1))
     return z
 
 
 def arglastz(z, y, loss_func, vp, mp, beta):
     norm = z - mp
-    m3 = beta * (np.linalg.norm(norm, ord=1)**2)
+    m3 = beta * (np.linalg.norm(norm, ord=2)**2)
     loss = loss_func(z, y)
     return loss + vp + m3
 

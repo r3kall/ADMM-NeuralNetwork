@@ -6,6 +6,8 @@ import auxiliaries
 from logger import defineLogger, Loggers
 from model.admm import weight_update, activation_update, minz, minlastz, lambda_update
 
+from memory_profiler import profile
+
 __author__ = "Lorenzo Rutigliano, lnz.rutigliano@gmail.com"
 
 log = defineLogger(Loggers.STANDARD)
@@ -79,12 +81,16 @@ class NeuralNetwork(object):
     def feedforward(self, a):
         for i in range(self.dim-1):
             a = self.nl_func(np.dot(self.w[i], a))
-        #return a
         return np.dot(self.w[-1], a)
 
+    def feedforward2(self, a):
+        for i in range(self.dim):
+            a = self.nl_func(np.dot(self.w[i], a))
+        return a
 
+@profile
 def main():
-    pass
+    nn = NeuralNetwork(768, 10, 1024, 200)
 
 
 if __name__ == "__main__":
