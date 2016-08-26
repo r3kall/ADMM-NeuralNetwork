@@ -41,11 +41,13 @@ def linear(x):
 
 
 def quadratic_cost(z, y):
-    return 0.5 * (np.linalg.norm(z - y, ord=2) ** 2)
+    return 0.5 * ((np.abs(z - y)) ** 2)
 
 
 def binary_hinge_loss(z, y):
-    return np.maximum(0, 1 - np.dot(z.T, y))
+    if y == 1:
+        return np.maximum(0, 1 - z)
+    return np.maximum(0, z)
 
 
 def target_gen(classes, seed):
@@ -55,7 +57,7 @@ def target_gen(classes, seed):
 
 
 def _fill_array(dim_sample, occ, x):
-    s = np.full(dim_sample, 0.005, dtype='float64')
+    s = np.full(dim_sample, 0.0001, dtype='float64')
     while occ > 0:
         i = random.randint(0, len(s)-1)
         c = (i+10) % len(s)
@@ -107,5 +109,5 @@ def convert_binary_to_number(t):
     assert len(t) == 10
     for i in range(10):
         if t[i] == 1:
-            return float(i)
+            return i
     raise ValueError("Target not valid !!")

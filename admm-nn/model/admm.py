@@ -32,44 +32,39 @@ def activation_update(next_weight, next_layer_output, layer_nl_output, beta, gam
 
 
 def argz(z, a, mp, nl_func, beta, gamma):
-    norm1 = a - nl_func(z)
-    norm2 = z - mp
-    m1 = gamma * (np.linalg.norm(norm1, ord=2) ** 2)
-    m2 = beta * (np.linalg.norm(norm2, ord=2) ** 2)
+    m1 = gamma * ((np.abs(a - nl_func(z))) ** 2)
+    m2 = beta * ((np.abs(z - mp)) ** 2)
     return m1 + m2
 
 
-def minz(zv, zm, pos, dim, a, mp, nl_func, beta, gamma):
-    zv = np.reshape(zv, (dim, 1))
-    zm[:, pos] = zv
-    return argz(zm, a, mp, nl_func, beta, gamma)
-
-
 def argminz(z, a, w, a_in, nl_func, beta, gamma):
+    x = z.shape[0]
+    y = z.shape[1]
     mp = np.dot(w, a_in)
-    outdim = z.shape[0]
-    print(z.shape[1])
-    print(outdim)
-    for j in range(z.shape[1]):
-        res = sp.optimize.minimize(minz, z[:, j], args=(z, j, outdim, a, mp, nl_func, beta, gamma))
-        z[:, j] = np.reshape(res.x, (outdim, 1))
+    for i in range(x):
+        for j in range(y):
+            res = sp.optimize.minimize_scalar(argz, args=(a[i, j],
+                                                          mp[i, j],
+                                                          nl_func, beta, gamma))
+            z[i, j] = res.x
     return z
 
 
-def arglastz(z, y, loss_func, vp, mp, beta):
-    norm = z - mp
-    m3 = beta * (np.linalg.norm(norm, ord=2)**2)
-    loss = loss_func(z, y)
-    return loss + vp + m3
+def arglastz(z, y, inner, mp, loss_func, beta):
+    return loss_func(z, y) + inner + (beta * ((np.abs(z - mp)) ** 2))
 
 
-def minlastz(z, y, loss_func, lAmbda, mp, zl, beta):
-    assert z.shape[1] == y.shape[1] == lAmbda.shape[1] == mp.shape[1]
-    for j in range(z.shape[1]):
-        vp = np.ravel(np.dot(zl[:, j].T, lAmbda[:, j]))[0]
-        res = sp.optimize.minimize(arglastz, z[:, j],
-                                   args=(y[:, j], loss_func, vp, mp[:, j], beta))
-        z[:, j] = np.reshape(res.x, (z.shape[0], 1))
+def argminlastz(z, targets, lmbda, mp, loss_func, beta):
+    x = z.shape[0]
+    y = z.shape[1]
+    for i in range(x):
+        for j in range(y):
+            inner = z[i, j] * lmbda[i, j]
+            res = sp.optimize.minimize_scalar(arglastz, args=(targets[i, j],
+                                                              inner,
+                                                              mp[i, j],
+                                                              loss_func, beta))
+            z[i, j] = res.x
     return z
 
 

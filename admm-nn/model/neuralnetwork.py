@@ -4,7 +4,8 @@ import scipy.optimize
 
 import auxiliaries
 from logger import defineLogger, Loggers
-from model.admm import weight_update, activation_update, minz, minlastz, lambda_update
+from model.admm import weight_update, activation_update, lambda_update, \
+    argminz, argminlastz
 
 from memory_profiler import profile
 
@@ -47,26 +48,25 @@ class NeuralNetwork(object):
 
     def train(self, a, y):
         self._train_hidden_layers(a)
+
         self.w[-1] = weight_update(self.z[-1], self.a[-2])
         mp = np.dot(self.w[-1], self.a[-2])
-        self.z[-1] = minlastz(self.z[-1], y, self.loss_func, self.z[-1],
-                              self.lAmbda, mp, self.beta)
+        self.z[-1] = argminlastz(self.z[-1], y, self.lAmbda, mp, self.loss_func, self.beta)
         self.lAmbda += lambda_update(self.z[-1], mp, self.beta)
 
     def warmstart(self, a, y):
         self._train_hidden_layers(a)
         self.w[-1] = weight_update(self.z[-1], self.a[-2])
         mp = np.dot(self.w[-1], self.a[-2])
-        self.z[-1] = minlastz(self.z[-1], y, self.loss_func, self.z[-1],
-                              self.lAmbda, mp, self.beta)
+        self.z[-1] = argminlastz(self.z[-1], y, self.lAmbda, mp, self.loss_func, self.beta)
 
     def _train_hidden_layers(self, a):
         self.w[0] = weight_update(self.z[0], a)
         self.a[0] = activation_update(self.w[1], self.z[1], self.nl_func(self.z[0]),
                                       self.beta, self.gamma)
         # st = time.time()
-        self.z[0] = minz(self.z[0], self.w[0], self.a[0], a, self.nl_func, self.beta,
-                         self.gamma)
+        self.z[0] = argminz(self.z[0], self.a[0], self.w[0], a,
+                            self.nl_func, self.beta, self.gamma)
         # endt = time.time() - st
         # print("Hidden time: %s" % str(endt))
 
@@ -75,8 +75,8 @@ class NeuralNetwork(object):
             self.a[i] = activation_update(self.w[i + 1], self.z[i + 1],
                                           self.nl_func(self.z[i]),
                                           self.beta, self.gamma)
-            self.z[i] = minz(self.z[i], self.w[i], self.a[i], self.a[i - 1],
-                             self.nl_func, self.beta, self.gamma)
+            self.z[i] = argminz(self.z[i], self.a[i], self.w[i], self.a[i - 1],
+                                self.nl_func, self.beta, self.gamma)
 
     def feedforward(self, a):
         for i in range(self.dim-1):
@@ -88,9 +88,10 @@ class NeuralNetwork(object):
             a = self.nl_func(np.dot(self.w[i], a))
         return a
 
-@profile
+
 def main():
-    nn = NeuralNetwork(768, 10, 1024, 200)
+    n = 0 ** 2
+    print(n)
 
 
 if __name__ == "__main__":
