@@ -31,22 +31,29 @@ def activation_update(next_weight, next_layer_output, layer_nl_output, beta, gam
     return np.dot(m1, m2)
 
 
-def argz(z, a, mp, nl_func, beta, gamma):
-    m1 = gamma * ((np.abs(a - nl_func(z))) ** 2)
-    m2 = beta * ((np.abs(z - mp)) ** 2)
-    return m1 + m2
+def _minimize(a, m, alpha, beta):
+    if a <= 0 and m <= 0:
+        return m
+    sol = ((alpha * a) + (beta * m)) / (alpha + beta)
+    if a >= 0 and m >= 0:
+        return sol
+    if m < 0 < a:
+        if sol / (a ** 2) > 1:
+            return sol
+        else:
+            return m
+    if a < 0 < m:
+        return sol
 
 
-def argminz(z, a, w, a_in, nl_func, beta, gamma):
-    x = z.shape[0]
-    y = z.shape[1]
-    mp = np.dot(w, a_in)
+def argminz(a, w, a_in, gamma, beta):
+    m = np.dot(w, a_in)
+    x = a.shape[0]
+    y = a.shape[1]
+    z = np.zeros((x, y), dtype='float64')
     for i in range(x):
         for j in range(y):
-            res = sp.optimize.minimize_scalar(argz, args=(a[i, j],
-                                                          mp[i, j],
-                                                          nl_func, beta, gamma))
-            z[i, j] = res.x
+            z[i, j] = _minimize(a[i, j], m[i, j], gamma, beta)
     return z
 
 

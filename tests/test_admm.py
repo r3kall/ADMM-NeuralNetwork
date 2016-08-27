@@ -7,7 +7,7 @@ import scipy.linalg.blas
 import time
 
 import auxiliaries
-from model.admm import weight_update, activation_update, minz, minlastz, argz, lambda_update
+from model.admm import weight_update, activation_update, argminz
 
 __author__ = "Lorenzo Rutigliano, lnz.rutigliano@gmail.com"
 
@@ -42,16 +42,18 @@ def test_activation():
 
 def test_minz():
     print()
-    n = 102
+    n = 2
     indim = 300
-    outdim = 80
+    outdim = 3
     w = np.matlib.randn(outdim, indim)
-    z = np.matlib.randn(outdim, n)
+    #z = np.matlib.randn(outdim, n)
     act = np.matlib.randn(outdim, n)
     a = np.matlib.randn(indim, n)
 
-    z = minz(z, w, act, a, auxiliaries.relu, 1, 10)
+    z = argminz(act, w, a, 10, 1)
     print("Output shape: %s" % str(z.shape))
+    print()
+    print(z)
 
 
 def test_minlastz():
@@ -64,8 +66,5 @@ def test_minlastz():
     y = np.matlib.randn(10, n)
     mp = np.dot(w, a)
 
-    res = minlastz(z, y, auxiliaries.quadratic_cost, l, mp, z, 1)
-    print("Final shape: %s" % str(res.shape))
-    lmb = lambda_update(res, mp, 1)
-    print("Lambda shape: %s" % str(lmb.shape))
+
 
