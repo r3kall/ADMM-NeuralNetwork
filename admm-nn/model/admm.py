@@ -1,8 +1,5 @@
 import numpy as np
-import scipy as sp
 
-import scipy.optimize
-import time
 
 __author__ = "Lorenzo Rutigliano, lnz.rutigliano@gmail.com"
 
@@ -57,23 +54,30 @@ def argminz(a, w, a_in, gamma, beta):
     return z
 
 
-def arglastz(z, y, inner, mp, loss_func, beta):
-    return loss_func(z, y) + inner + (beta * ((np.abs(z - mp)) ** 2))
+def _minimizelast(y, eps, m, beta):
+    if y == 0:
+        if m > (eps + 1) / (2 * beta):
+            return m - ((eps + 1) / (2 * beta))
+        else:
+            return m - (eps / (2 * beta))
+    else:
+        if m < 1 + ((eps - 1) / (2 * beta)):
+            return m - ((eps - 1) / (2 * beta))
+        else:
+            return m - (eps / (2 * beta))
 
 
-def argminlastz(z, targets, lmbda, mp, loss_func, beta):
-    x = z.shape[0]
-    y = z.shape[1]
+def argminlastz(targets, eps, w, a_in, beta):
+    m = np.dot(w, a_in)
+    x = targets.shape[0]
+    y = targets.shape[1]
+    z = np.zeros((x, y), dtype='float64')
     for i in range(x):
         for j in range(y):
-            inner = z[i, j] * lmbda[i, j]
-            res = sp.optimize.minimize_scalar(arglastz, args=(targets[i, j],
-                                                              inner,
-                                                              mp[i, j],
-                                                              loss_func, beta))
-            z[i, j] = res.x
+            z[i, j] = _minimizelast(targets[i, j], eps[i, j], m[i, j], beta)
     return z
 
 
-def lambda_update(zl, mpt, beta):
+def lambda_update(zl, w, a_in, beta):
+    mpt = np.dot(w, a_in)
     return beta * (zl - mpt)

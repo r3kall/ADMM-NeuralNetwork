@@ -32,18 +32,6 @@ def relu(x):
     return np.maximum(0, x)
 
 
-def sigmoid(x):
-    return np.minimum(1, relu(x))
-
-
-def linear(x):
-    return x
-
-
-def quadratic_cost(z, y):
-    return 0.5 * ((np.abs(z - y)) ** 2)
-
-
 def binary_hinge_loss(z, y):
     if y == 1:
         return np.maximum(0, 1 - z)
@@ -51,13 +39,13 @@ def binary_hinge_loss(z, y):
 
 
 def target_gen(classes, seed):
-    t = np.full((classes), 0, dtype='float64')
+    t = np.full(classes, 0, dtype='float64')
     t[seed] = 1
     return t
 
 
 def _fill_array(dim_sample, occ, x):
-    s = np.full(dim_sample, 0.0001, dtype='float64')
+    s = np.full(dim_sample, 0.001, dtype='float64')
     while occ > 0:
         i = random.randint(0, len(s)-1)
         c = (i+10) % len(s)

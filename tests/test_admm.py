@@ -1,3 +1,5 @@
+import random
+
 import pytest
 
 import numpy as np
@@ -7,7 +9,7 @@ import scipy.linalg.blas
 import time
 
 import auxiliaries
-from model.admm import weight_update, activation_update, argminz
+from model.admm import weight_update, activation_update, argminz, argminlastz
 
 __author__ = "Lorenzo Rutigliano, lnz.rutigliano@gmail.com"
 
@@ -56,15 +58,33 @@ def test_minz():
     print(z)
 
 
+def _comp(z, y, eps, m, beta):
+    c = 0
+    for i in range(z.shape[0]):
+        for j in range(z.shape[1]):
+            c += auxiliaries.binary_hinge_loss(z[i, j], y[i, j]) + (z[i, j] * eps[i, j]) + \
+                 beta * ((z[i, j] - m[i, j]) ** 2)
+    return c
+
+
 def test_minlastz():
     print()
-    n = 12
-    w = np.matlib.randn(10, 400)
-    z = np.matlib.randn(10, n)
-    a = np.matlib.randn(400, n)
-    l = np.matlib.randn(10, n)
-    y = np.matlib.randn(10, n)
-    mp = np.dot(w, a)
+    n = 2
+    indim = 128
+    outdim = 10
+    w = np.matlib.randn(outdim, indim)
+    z = np.matlib.randn(outdim, n)
+    eps = np.matlib.randn(outdim, n)
+    a_in = np.matlib.randn(indim, n)
+    m = np.dot(w, a_in)
 
+    samples, targets = auxiliaries.data_gen(indim, outdim, n)
+
+    print(_comp(z, targets, eps, m, 1.))
+    print(z)
+    print("==========")
+    z = argminlastz(targets, eps, w, a_in, 1.)
+    print(_comp(z, targets, eps, m, 1.))
+    print(z)
 
 

@@ -17,21 +17,14 @@ def test_1():
     hidden1 = 200
     nn = NeuralNetwork(indim, outdim, n, hidden1)
 
-    samples, targets = auxiliaries.data_gen(indim, outdim, n)
-    nn.train(samples, targets)
+    for i in range(20):
+        samples, targets = auxiliaries.data_gen(indim, outdim, n)
+        print(nn.w[-1][0, 0])
+        print("===============")
+        nn.train(samples, targets)
 
-    c = 0
-    print(nn.z[-1].shape)
-    for j in range(n):
-        output = auxiliaries.get_max_index(nn.z[-1][:, j])
-        label = auxiliaries.convert_binary_to_number(targets[:, j])
-        if output == label:
-            c += 1
-    print("===")
-    print(c)
 
-    """
-    test = n // 6
+    test = n // 2
     samples, targets = auxiliaries.data_gen(indim, outdim, test)
     res = nn.feedforward(samples)
 
@@ -42,4 +35,4 @@ def test_1():
         if output == label:
             c += 1
     print("%s/%s" % (c, test))
-    """
+
