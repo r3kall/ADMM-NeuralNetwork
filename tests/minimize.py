@@ -78,3 +78,47 @@ def test_2():
     res2 = 10 * (2.5 - np.maximum(0, sol)) ** 2 + 1 * (sol + 41.5) ** 2
     print(res1)
     print(res2)
+
+"""
+LAST LAYER
+"""
+def loss(z, y):
+    if y == 1:
+        return np.maximum(0, 1 - z)
+    return np.maximum(0, z)
+
+
+def compscalar(z, y, eps, m, beta):
+    return loss(z, y) + (z * eps) + (beta * ((z - m) ** 2))
+
+
+def lastmin(y, eps, m, beta):
+    if y == 0:
+        if m > (eps + 1) / (2 * beta):
+            return m - ((eps + 1) / (2 * beta))
+        else:
+            return m - (eps / (2 * beta))
+    else:
+        if m < 1 + ((eps - 1) / (2 * beta)):
+            return m - ((eps - 1) / (2 * beta))
+        else:
+            return m - (eps / (2 * beta))
+
+
+def test_3():
+    print()
+    print()
+    n = 3
+    indim = 400
+    outdim = 10
+    w = np.matlib.randn(outdim, indim)
+    z = np.matlib.randn(outdim, n)
+    a = np.matlib.randn(outdim, n)
+    a_in = np.matlib.randn(indim, n)
+    samples, targets = auxiliaries.data_gen(indim, outdim, n)
+    eps = np.matlib.randn(outdim, n)
+    m = np.dot(w, a_in)
+
+    for i in range(outdim):
+        for j in range(n):
+            z[i, j] = lastmin(targets[i, j], eps[i, j], m[i, j], 1.)
