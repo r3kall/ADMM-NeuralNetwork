@@ -28,14 +28,29 @@ def check_dimensions(a, n, m):
     log.debug("Function '%s' validates the array" % check_dimensions.__name__)
 
 
+npa = np.array
+def softmax(w, t = 1.0):
+    e = np.exp(npa(w) / t)
+    dist = e / np.sum(e)
+    return dist
+
+
 def relu(x):
     return np.maximum(0, x)
 
 
-def binary_hinge_loss(z, y):
+def binary_loss(z, y):
     if y == 1:
         return np.maximum(0, 1 - z)
     return np.maximum(0, z)
+
+
+def binary_loss_sum(z, y):
+    c = 0
+    for e in range(z.shape[0]):
+        #print("z: %s    y: %s" % (str(z[e]), str(y[e])))
+        c += binary_loss(z[e], y[e])
+    return c
 
 
 def target_gen(classes, seed):
@@ -59,8 +74,9 @@ def _fill_array(dim_sample, occ, x):
 
 
 def sample_gen(dim_sample, seed, alpha):
-    occ = random.randint((dim_sample//2)+1, (dim_sample-1))
-    s = _fill_array(dim_sample, occ, seed/alpha)
+    #occ = random.randint((dim_sample//2)+1, (dim_sample-1))
+    #s = _fill_array(dim_sample, occ, seed/alpha)
+    s = np.full(dim_sample, seed/alpha, dtype='float64')
     return s
 
 

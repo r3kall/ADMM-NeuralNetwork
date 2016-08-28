@@ -1,13 +1,13 @@
 import numpy as np
 import numpy.matlib
 import scipy.optimize
+import time
 
 import auxiliaries
 from logger import defineLogger, Loggers
 from model.admm import weight_update, activation_update, lambda_update, \
     argminz, argminlastz
 
-from memory_profiler import profile
 
 __author__ = "Lorenzo Rutigliano, lnz.rutigliano@gmail.com"
 
@@ -18,7 +18,7 @@ class NeuralNetwork(object):
     def __init__(self, features, classes, training_space, *layers,
                  beta=1, gamma=10,
                  non_linear_func=auxiliaries.relu,
-                 loss_func=auxiliaries.binary_hinge_loss):
+                 loss_func=auxiliaries.binary_loss):
 
         assert len(layers) > 0 and features > 0 and classes > 0 and training_space > 0
         self.nl_func = non_linear_func
@@ -55,18 +55,18 @@ class NeuralNetwork(object):
 
     def warmstart(self, a, y):
         self._train_hidden_layers(a)
+
         self.w[-1] = weight_update(self.z[-1], self.a[-2])
-        mp = np.dot(self.w[-1], self.a[-2])
-        self.z[-1] = argminlastz(self.z[-1], y, self.lAmbda, mp, self.loss_func, self.beta)
+        self.z[-1] = argminlastz(y, self.lAmbda, self.w[-1], self.a[-2], self.beta)
 
     def _train_hidden_layers(self, a):
+        st = time.time()
         self.w[0] = weight_update(self.z[0], a)
         self.a[0] = activation_update(self.w[1], self.z[1], self.nl_func(self.z[0]),
                                       self.beta, self.gamma)
-        # st = time.time()
+        endt = time.time() - st
         self.z[0] = argminz(self.a[0], self.w[0], a, self.gamma, self.beta)
-        # endt = time.time() - st
-        # print("Hidden time: %s" % str(endt))
+        print("Hidden time: %s" % str(endt))
 
         for i in range(1, self.dim - 1):
             self.w[i] = weight_update(self.z[i], self.a[i - 1])

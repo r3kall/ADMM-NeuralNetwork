@@ -10,13 +10,13 @@ def weight_update(layer_output, activation_input):
 
 
 def _activation_inverse(next_weight, beta, gamma):
-    m1 = np.dot((next_weight.H * beta), next_weight)
-    m2 = np.identity(next_weight.shape[1], dtype='float64') * gamma
+    m1 = beta * (np.dot(next_weight.H, next_weight))
+    m2 = (np.identity(next_weight.shape[1], dtype='float64')) * gamma
     return np.linalg.inv(m1 + m2)
 
 
 def _activation_formulate(next_weight, next_layer_output, layer_nl_output, beta, gamma):
-    m1 = np.dot((next_weight.H * beta), next_layer_output)
+    m1 = beta * (np.dot(next_weight.H, next_layer_output))
     m2 = gamma * layer_nl_output
     return m1 + m2
 

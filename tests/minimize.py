@@ -105,6 +105,29 @@ def lastmin(y, eps, m, beta):
             return m - (eps / (2 * beta))
 
 
+def bot(z, y, eps, m, beta):
+    m1 = auxiliaries.binary_loss_sum(z, y)
+    m2 = np.dot(z.T, eps)
+    m3 = beta * (np.linalg.norm(z - m) ** 2)
+    return m1 + m2[0, 0] + m3
+
+
+def top(z, y, eps, w, a_in, beta):
+    m = np.dot(w, a_in)
+    for j in range(z.shape[1]):
+        tmp = sp.optimize.minimize(bot, z[:, j], args=(y[:, j], eps[:, j], m[:, j], beta))
+        z[:, j] = np.reshape(tmp.x, (10, 1))
+    return z
+
+
+def compall(z, y, eps, w, a_in, beta):
+    m = np.dot(w, a_in)
+    c = 0
+    for j in range(z.shape[1]):
+        c += bot(z[:, j], y[:, j], eps[:, j], m[:, j], beta)
+    return c
+
+
 def test_3():
     print()
     print()
@@ -119,6 +142,14 @@ def test_3():
     eps = np.matlib.randn(outdim, n)
     m = np.dot(w, a_in)
 
-    for i in range(outdim):
-        for j in range(n):
+    print(compall(z, targets, eps, w, a_in, 1.))
+    z1 = top(z, targets, eps, w, a_in, 1.)
+    print(compall(z1, targets, eps, w, a_in, 1.))
+
+    c = 0
+    for i in range(z.shape[0]):
+        for j in range(z.shape[1]):
             z[i, j] = lastmin(targets[i, j], eps[i, j], m[i, j], 1.)
+            c += compscalar(z[i, j], targets[i, j], eps[i, j], m[i, j], 1.)
+    #print(c)
+    print(compall(z, targets, eps, w, a_in, 1.))
