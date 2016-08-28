@@ -1,5 +1,7 @@
 import numpy as np
 
+import warnings
+warnings.filterwarnings("error")
 
 __author__ = "Lorenzo Rutigliano, lnz.rutigliano@gmail.com"
 
@@ -29,13 +31,20 @@ def activation_update(next_weight, next_layer_output, layer_nl_output, beta, gam
 
 
 def _minimize(a, m, alpha, beta):
+    #a = np.round(a, decimals=6)
+    #m = np.round(m, decimals=6)
     if a <= 0 and m <= 0:
         return m
     sol = ((alpha * a) + (beta * m)) / (alpha + beta)
+    #sol = np.round(sol, decimals=6)
     if a >= 0 and m >= 0:
         return sol
     if m < 0 < a:
-        if sol / (a ** 2) > 1:
+        try:
+            t = a ** 2
+        except RuntimeWarning:
+            return sol
+        if sol > t:
             return sol
         else:
             return m

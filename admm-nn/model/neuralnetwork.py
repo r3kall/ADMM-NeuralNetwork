@@ -16,7 +16,7 @@ log = defineLogger(Loggers.STANDARD)
 
 class NeuralNetwork(object):
     def __init__(self, features, classes, training_space, *layers,
-                 beta=1, gamma=10,
+                 beta=1., gamma=10.,
                  non_linear_func=auxiliaries.relu,
                  loss_func=auxiliaries.binary_loss):
 
@@ -29,6 +29,7 @@ class NeuralNetwork(object):
         self.z = []
         self.a = []
         self.lAmbda = np.zeros((classes, training_space), dtype='float64')
+        #self.lAmbda = np.matlib.randn(classes, training_space)
 
         for i in range(len(layers)):
             if i == 0:
@@ -60,13 +61,13 @@ class NeuralNetwork(object):
         self.z[-1] = argminlastz(y, self.lAmbda, self.w[-1], self.a[-2], self.beta)
 
     def _train_hidden_layers(self, a):
-        st = time.time()
+        #st = time.time()
         self.w[0] = weight_update(self.z[0], a)
         self.a[0] = activation_update(self.w[1], self.z[1], self.nl_func(self.z[0]),
                                       self.beta, self.gamma)
-        endt = time.time() - st
+        #endt = time.time() - st
         self.z[0] = argminz(self.a[0], self.w[0], a, self.gamma, self.beta)
-        print("Hidden time: %s" % str(endt))
+        #print("Hidden time: %s" % str(endt))
 
         for i in range(1, self.dim - 1):
             self.w[i] = weight_update(self.z[i], self.a[i - 1])
