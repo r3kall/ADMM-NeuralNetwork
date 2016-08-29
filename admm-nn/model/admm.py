@@ -65,13 +65,14 @@ def argminz(a, w, a_in, gamma, beta):
 
 def _minimizelast(y, eps, m, beta):
     if y == 0:
-        if m > (eps + 1) / (2 * beta):
-            return m - ((eps + 1) / (2 * beta))
+        if m >= ((1 + eps) / (2 * beta)):
+            return m - ((1 + eps) / (2 * beta))
         else:
             return m - (eps / (2 * beta))
     else:
-        if m < 1 + ((eps - 1) / (2 * beta)):
-            return m - ((eps - 1) / (2 * beta))
+        sol = m + ((1 - eps) / (2 * beta))
+        if sol <= 1:
+            return sol
         else:
             return m - (eps / (2 * beta))
 

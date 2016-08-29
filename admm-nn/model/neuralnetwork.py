@@ -49,7 +49,6 @@ class NeuralNetwork(object):
 
     def train(self, a, y):
         self._train_hidden_layers(a)
-
         self.w[-1] = weight_update(self.z[-1], self.a[-2])
         self.z[-1] = argminlastz(y, self.lAmbda, self.w[-1], self.a[-2], self.beta)
         self.lAmbda += lambda_update(self.z[-1], self.w[-1], self.a[-2], self.beta)
@@ -85,11 +84,3 @@ class NeuralNetwork(object):
         for i in range(self.dim):
             a = self.nl_func(np.dot(self.w[i], a))
         return a
-
-
-def main():
-    pass
-
-
-if __name__ == "__main__":
-    main()
