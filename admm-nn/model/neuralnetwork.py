@@ -33,16 +33,19 @@ class NeuralNetwork(object):
 
         for i in range(len(layers)):
             if i == 0:
-                w = np.matlib.randn(layers[0], features)
+                #w = np.matlib.randn(layers[0], features)
+                w = np.mat(np.zeros((layers[0], features), dtype='float64'))
             else:
-                w = np.matlib.randn(layers[i], layers[i-1])
+                #w = np.matlib.randn(layers[i], layers[i-1])
+                w = np.mat(np.zeros((layers[i], layers[i-1]), dtype='float64'))
             z = np.matlib.randn(layers[i], training_space)
             a = np.matlib.randn(layers[i], training_space)
             self.w.append(w)
             self.z.append(z)
             self.a.append(a)
 
-        self.w.append(np.matlib.randn(classes, layers[-1]))
+        #self.w.append(np.matlib.randn(classes, layers[-1]))
+        self.w.append(np.mat(np.zeros((classes, layers[-1]), dtype='float64')))
         self.z.append(np.matlib.randn(classes, training_space))
         self.a.append(self.nl_func(self.z[-1]))
         self.dim = len(layers) + 1
@@ -84,3 +87,10 @@ class NeuralNetwork(object):
         for i in range(self.dim):
             a = self.nl_func(np.dot(self.w[i], a))
         return a
+
+    def cringefeedforward(self, a, y):
+        a0 = activation_update(self.w[1], self.z[1], self.nl_func(self.z[0]),
+                                      self.beta, self.gamma)
+        #z1 = argminz(a0, self.w[0], a, self.gamma, self.beta)
+        zl = argminlastz(y, self.lAmbda, self.w[-1], a0, self.beta)
+        return zl

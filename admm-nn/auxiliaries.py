@@ -76,9 +76,9 @@ def _fill_array(dim_sample, occ, x):
 
 
 def sample_gen(dim_sample, seed, alpha):
-    #occ = random.randint((dim_sample//2)+1, (dim_sample-1))
-    #s = _fill_array(dim_sample, occ, seed/alpha)
-    s = np.full(dim_sample, seed/alpha, dtype='float64')
+    occ = random.randint((dim_sample//2)+1, (dim_sample-1))
+    s = _fill_array(dim_sample, occ, seed/alpha)
+    #s = np.full(dim_sample, seed/alpha, dtype='float64')
     return s
 
 
@@ -93,19 +93,19 @@ def data_gen(feature, classes, n):
 
 
 def triple_data_gen(feature, classes, n):
-    assert classes == 3
+    assert classes == 4
     targets = np.zeros((classes, n))
     samples = np.zeros((feature, n))
     for i in range(n):
-        seed = random.randint(0, 2)
+        seed = random.randint(0, 3)
         targets[:, i] = target_gen(classes, seed)
         samples[:, i] = sample_gen(feature, seed, 1)
     return samples, targets
 
 
 def convert_triple_to_number(t):
-    assert len(t) == 3
-    for i in range(3):
+    assert len(t) == 4
+    for i in range(4):
         if t[i] == 1:
             return i
     raise ValueError("Target not valid !!")
