@@ -16,7 +16,7 @@ log = defineLogger(Loggers.STANDARD)
 
 class NeuralNetwork(object):
     def __init__(self, features, classes, training_space, *layers,
-                 beta=1., gamma=10.,
+                 beta=1., gamma=2.,
                  non_linear_func=auxiliaries.relu,
                  loss_func=auxiliaries.binary_loss):
 
@@ -28,7 +28,7 @@ class NeuralNetwork(object):
         self.w = []
         self.z = []
         self.a = []
-        self.lAmbda = np.zeros((classes, training_space), dtype='float64')
+        self.lAmbda = np.mat(np.zeros((classes, training_space), dtype='float64'))
         #self.lAmbda = np.matlib.randn(classes, training_space)
 
         for i in range(len(layers)):
@@ -63,6 +63,7 @@ class NeuralNetwork(object):
         self.z[-1] = argminlastz(y, self.lAmbda, self.w[-1], self.a[-2], self.beta)
 
     def _train_hidden_layers(self, a):
+
         #st = time.time()
         self.w[0] = weight_update(self.z[0], a)
         self.a[0] = activation_update(self.w[1], self.z[1], self.nl_func(self.z[0]),
@@ -80,7 +81,8 @@ class NeuralNetwork(object):
 
     def feedforward(self, a):
         for i in range(self.dim-1):
-            a = self.nl_func(np.dot(self.w[i], a))
+            z = np.dot(self.w[i], a)
+            a = auxiliaries.relu(z)
         return np.dot(self.w[-1], a)
 
     def feedforward2(self, a):
@@ -89,8 +91,11 @@ class NeuralNetwork(object):
         return a
 
     def cringefeedforward(self, a, y):
-        a0 = activation_update(self.w[1], self.z[1], self.nl_func(self.z[0]),
-                                      self.beta, self.gamma)
-        #z1 = argminz(a0, self.w[0], a, self.gamma, self.beta)
-        zl = argminlastz(y, self.lAmbda, self.w[-1], a0, self.beta)
-        return zl
+        act0 = activation_update(self.w[1], self.z[1], self.nl_func(self.z[0]),
+                                 self.beta, self.gamma)
+        z0 = argminz(act0, self.w[0], a, self.gamma, self.beta)
+
+        act1 = activation_update(self.w[2], self.z[2], self.nl_func(self.z[1]),
+                                 self.beta, self.gamma)
+        z1 = argminz(act1, self.w[0], act0, self.gamma, self.beta)
+        return zr

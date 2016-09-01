@@ -12,13 +12,13 @@ def weight_update(layer_output, activation_input):
 
 
 def _activation_inverse(next_weight, beta, gamma):
-    m1 = beta * (np.dot(next_weight.H, next_weight))
+    m1 = beta * (np.dot(next_weight.T, next_weight))
     m2 = (np.identity(next_weight.shape[1], dtype='float64')) * gamma
     return np.linalg.inv(m1 + m2)
 
 
 def _activation_formulate(next_weight, next_layer_output, layer_nl_output, beta, gamma):
-    m1 = beta * (np.dot(next_weight.H, next_layer_output))
+    m1 = beta * (np.dot(next_weight.T, next_layer_output))
     m2 = gamma * layer_nl_output
     return m1 + m2
 
@@ -56,7 +56,7 @@ def argminz(a, w, a_in, gamma, beta):
     m = np.dot(w, a_in)
     x = a.shape[0]
     y = a.shape[1]
-    z = np.zeros((x, y), dtype='float64')
+    z = np.mat(np.zeros((x, y), dtype='float64'))
     for i in range(x):
         for j in range(y):
             z[i, j] = _minimize(a[i, j], m[i, j], gamma, beta)
@@ -81,7 +81,7 @@ def argminlastz(targets, eps, w, a_in, beta):
     m = np.dot(w, a_in)
     x = targets.shape[0]
     y = targets.shape[1]
-    z = np.zeros((x, y), dtype='float64')
+    z = np.mat(np.zeros((x, y), dtype='float64'))
     for i in range(x):
         for j in range(y):
             z[i, j] = _minimizelast(targets[i, j], eps[i, j], m[i, j], beta)

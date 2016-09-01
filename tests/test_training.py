@@ -1,7 +1,7 @@
 import pytest
 import time
 import numpy
-import profile
+from sklearn import datasets
 
 import auxiliaries
 from model.neuralnetwork import NeuralNetwork
@@ -11,6 +11,7 @@ __author__ = "Lorenzo Rutigliano, lnz.rutigliano@gmail.com"
 
 def epoch(nn, samples, targets, tst_samples, tst_targets, n, test):
     st = time.time()
+    nn = warmepochs(nn, samples, targets, 2)
     for i in range(n):
         nn.train(samples, targets)
     endt = time.time() - st
@@ -22,7 +23,7 @@ def epoch(nn, samples, targets, tst_samples, tst_targets, n, test):
     c = 0
     for i in range(test):
         output = auxiliaries.get_max_index(res[:, i])
-        label = auxiliaries.convert_binary_to_number(tst_targets[:, i])
+        label = auxiliaries.convert_triple_to_number(tst_targets[:, i])
         if output == label:
             c += 1
     print("Accuracy: %s/%s" % (c, test))
@@ -43,17 +44,19 @@ def warmepochs(nn, samples, targets, iter):
 def test_1():
     print()
     print("=============")
-    indim = 300
-    outdim = 10
-    n = 8000
-    test = n // 4
-    hidden1 = 80
-    hidden2 = 40
-    nn = NeuralNetwork(indim, outdim, n, hidden1, hidden2)
+    indim = 4
+    outdim = 3
+    n = 150
+    test = n
+    hidden1 = 15
+    nn = NeuralNetwork(indim, outdim, n, hidden1)
 
-    samples, targets = auxiliaries.data_gen(indim, outdim, n)
-    tst_samples, tst_targets = auxiliaries.data_gen(indim, outdim, test)
-    nn = warmepochs(nn, samples, targets, 4)
-    for i in range(8):
-        #samples, targets = auxiliaries.data_gen(indim, outdim, n)
-        nn = epoch(nn, samples, targets, tst_samples, tst_targets, 2, test)
+    iris = datasets.load_iris()
+    data = iris.data.T
+    targets = numpy.mat(numpy.zeros((3, 150)))
+    for i in range(150):
+        v = iris.target[i]
+        targets[v, i] = 1
+
+    for i in range(10):
+        nn = epoch(nn, data, targets, data, targets, 1, test)

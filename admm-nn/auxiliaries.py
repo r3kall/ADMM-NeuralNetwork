@@ -48,11 +48,9 @@ def binary_loss(z, y):
 def binary_loss_sum(z, y):
     c = 0
     for j in range(z.shape[1]):
-        t = 0
         for i in range(z.shape[0]):
-            t += binary_loss(z[i, j], y[i, j])
-        c += t / z.shape[0]
-    return c / z.shape[1]
+            c += binary_loss(z[i, j], y[i, j])
+    return c / (z.shape[0] * z.shape[1])
 
 
 def target_gen(classes, seed):
@@ -76,9 +74,9 @@ def _fill_array(dim_sample, occ, x):
 
 
 def sample_gen(dim_sample, seed, alpha):
-    occ = random.randint((dim_sample//2)+1, (dim_sample-1))
-    s = _fill_array(dim_sample, occ, seed/alpha)
-    #s = np.full(dim_sample, seed/alpha, dtype='float64')
+    #occ = random.randint((dim_sample//2)+1, (dim_sample-1))
+    #s = _fill_array(dim_sample, occ, seed/alpha)
+    s = np.full(dim_sample, seed/alpha, dtype='float64')
     return s
 
 
@@ -93,19 +91,19 @@ def data_gen(feature, classes, n):
 
 
 def triple_data_gen(feature, classes, n):
-    assert classes == 4
+    assert classes == 3
     targets = np.zeros((classes, n))
     samples = np.zeros((feature, n))
     for i in range(n):
-        seed = random.randint(0, 3)
+        seed = random.randint(0, 2)
         targets[:, i] = target_gen(classes, seed)
         samples[:, i] = sample_gen(feature, seed, 1)
-    return samples, targets
+    return np.mat(samples), np.mat(targets)
 
 
 def convert_triple_to_number(t):
-    assert len(t) == 4
-    for i in range(4):
+    assert len(t) == 3
+    for i in range(3):
         if t[i] == 1:
             return i
     raise ValueError("Target not valid !!")
