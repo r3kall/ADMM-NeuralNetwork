@@ -11,7 +11,7 @@ from model.admm import weight_update, activation_update, \
 __author__ = "Lorenzo Rutigliano, lnz.rutigliano@gmail.com"
 
 log = defineLogger(Loggers.STANDARD)
-log.setLevel(Levels.INFO.value)
+log.setLevel(Levels.DEBUG.value)
 
 
 class NeuralNetwork(object):
@@ -46,11 +46,6 @@ class NeuralNetwork(object):
         self.a.append(self.nl_func(self.z[-1]))
         self.dim = len(layers) + 1
 
-        for i in range(self.dim):
-            auxiliaries.check_consistency(self.w[i])
-            auxiliaries.check_consistency(self.a[i])
-            auxiliaries.check_consistency(self.z[i])
-            auxiliaries.check_consistency(self.lAmbda)
         endt = time.time() - start
         log.debug("Neural Network - Creation time: %s seconds" %
                   str(np.round(endt, decimals=6)))

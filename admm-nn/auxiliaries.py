@@ -1,7 +1,5 @@
 import math
 import numpy as np
-import random
-import numpy.matlib
 from logger import defineLogger, Loggers
 
 __author__ = 'Lorenzo Rutigliano, lnz.rutigliano@gmail.com'
@@ -65,9 +63,9 @@ def get_percentage(percentage, n):
     return math.floor((n/100)*percentage)
 
 
-def convert_binary_to_number(t):
-    assert len(t) == 10
-    for i in range(10):
+def convert_binary_to_number(t, dim):
+    assert len(t) == dim
+    for i in range(dim):
         if t[i] == 1:
             return i
     raise ValueError("Target not valid !!")
