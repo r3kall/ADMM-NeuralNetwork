@@ -28,13 +28,6 @@ def check_dimensions(a, n, m):
     log.debug("Function '%s' validates the array" % check_dimensions.__name__)
 
 
-npa = np.array
-def softmax(w, t = 1.0):
-    e = np.exp(npa(w) / t)
-    dist = e / np.sum(e)
-    return dist
-
-
 def relu(x):
     return np.maximum(0, x)
 
@@ -51,62 +44,6 @@ def binary_loss_sum(z, y):
         for i in range(z.shape[0]):
             c += binary_loss(z[i, j], y[i, j])
     return c / (z.shape[0] * z.shape[1])
-
-
-def target_gen(classes, seed):
-    t = np.full(classes, 0, dtype='float64')
-    t[seed] = 1
-    return t
-
-
-def _fill_array(dim_sample, occ, x):
-    s = np.full(dim_sample, 0.001, dtype='float64')
-    while occ > 0:
-        i = random.randint(0, len(s)-1)
-        c = (i+10) % len(s)
-        if s[i] != x:
-            s[i] = float(x)
-            occ -= 1
-        elif s[c] != x:
-            s[c] = float(x)
-            occ -= 1
-    return s
-
-
-def sample_gen(dim_sample, seed, alpha):
-    #occ = random.randint((dim_sample//2)+1, (dim_sample-1))
-    #s = _fill_array(dim_sample, occ, seed/alpha)
-    s = np.full(dim_sample, seed/alpha, dtype='float64')
-    return s
-
-
-def data_gen(feature, classes, n):
-    targets = np.zeros((classes, n))
-    samples = np.zeros((feature, n))
-    for i in range(n):
-        seed = random.randint(0, 9)
-        targets[:, i] = target_gen(classes, seed)
-        samples[:, i] = sample_gen(feature, seed, 10)
-    return samples, targets
-
-
-def triple_data_gen(feature, classes, n):
-    assert classes == 3
-    targets = np.zeros((classes, n))
-    samples = np.zeros((feature, n))
-    for i in range(n):
-        seed = random.randint(0, 2)
-        targets[:, i] = target_gen(classes, seed)
-        samples[:, i] = sample_gen(feature, seed, 1)
-    return np.mat(samples), np.mat(targets)
-
-
-def convert_triple_to_number(t):
-    assert len(t) == 3
-    for i in range(3):
-        if t[i] == 1:
-            return i
-    raise ValueError("Target not valid !!")
 
 
 def get_max_index(a):

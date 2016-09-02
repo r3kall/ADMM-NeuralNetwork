@@ -11,13 +11,21 @@ class Loggers(Enum):
     ROOT = 'root'
     STANDARD = 'standard'
 
+
+class Levels(Enum):
+
+    DEBUG = logging.DEBUG
+    INFO = logging.INFO
+    WARNING = logging.WARNING
+
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
         'standard': {
-            'format': '%(levelname)s: %(name)s: %(message)s '
-                      '(%(asctime)s; %(filename)s:%(lineno)d)',
+            'format': '%(levelname)s: %(message)s '
+                      '\t(%(asctime)s; %(filename)s:%(lineno)d)',
             'datefmt': "%Y-%m-%d %H:%M:%S",
         },
     },
