@@ -26,10 +26,6 @@ def check_dimensions(a, n, m):
     log.debug("Function '%s' validates the array" % check_dimensions.__name__)
 
 
-def relu(x):
-    return np.maximum(0, x)
-
-
 def binary_loss(z, y):
     if y == 1:
         return np.maximum(0, 1 - z)

@@ -1,16 +1,18 @@
+import pytest
 import math
 import time
-
 import numpy
 from sklearn import datasets
+from copy import deepcopy
 
 import auxiliaries
 from neuralnetwork import NeuralNetwork
+from neuraltools import save_network_to_file, load_network_from_file
 
 __author__ = "Lorenzo Rutigliano, lnz.rutigliano@gmail.com"
 
 
-def epoch(nn, samples, targets, tst_samples, tst_targets, train_iter=1, warm_iter=8):
+def epoch(nn, samples, targets, tst_samples, tst_targets, train_iter=1, warm_iter=4):
     st = time.time()
     nn = warmepochs(nn, samples, targets, warm_iter)
     for i in range(train_iter):
@@ -71,6 +73,8 @@ def adaptive_training(nn, samples, targets, tst_samples, tst_targets, threshold=
             i = _minus(i, i // 100)
         elif threshold - approx <= 0.1:
             i = _minus(i, i // 10)
+        elif threshold - approx <= 0.5:
+            i = _minus(i, i // 3)
         nn, approx = epoch(nn, samples, targets,
                            tst_samples, tst_targets, warm_iter=i)
         diff += approx - tmp
@@ -80,25 +84,30 @@ def adaptive_training(nn, samples, targets, tst_samples, tst_targets, threshold=
     return nn, approx
 
 
-def meaniterations(data, targets, obj, lim, iters, b=1., g=10.):
-    indim = 64
-    outdim = 10
-    n = 1797
-    test = n
-    hidden1 = 12
-
-    it = 0
-    for i in range(iters):
-        nn = NeuralNetwork(indim, outdim, n, hidden1, beta=b, gamma=g)
-        approx = 0
-        c = 0
-        while approx < obj and c < lim:
-            nn, approx = epoch(nn, data, targets, data, targets)
-            it += 1
-            c += 1
-    print("Total iterations: %s/%s" % (str(it), str(iters * lim)))
-    print("Average iterations per nn: %s" % str(it / iters))
-    print("=============")
+def find_params(nn, samples, targets, tst_samples, tst_targets, eps):
+    nn0, approx = epoch(deepcopy(nn), samples, targets, tst_samples, tst_targets)
+    count = 10
+    gamma = nn.gamma
+    v = 0
+    while count > 0 and gamma - eps > 0:
+        if v >= 0:
+            nn.gamma = gamma + eps
+            nnp, p = epoch(deepcopy(nn), samples, targets, tst_samples, tst_targets)
+        if v <= 0:
+            nn.gamma = gamma - eps
+            nnt, t = epoch(deepcopy(nn), samples, targets, tst_samples, tst_targets)
+        if approx >= p and approx >= t:
+            return gamma
+        if p > t:
+            gamma = gamma + eps
+            approx = p
+            v = 1
+        else:
+            gamma = gamma - eps
+            approx = t
+            v = -1
+        count -= 1
+    return gamma
 
 
 def test_1():
@@ -108,7 +117,7 @@ def test_1():
     outdim = 10
     n = 1797
     test = n
-    hidden1 = 12
+    hidden1 = 20
     nn = NeuralNetwork(n, indim, outdim, hidden1)
 
     """
@@ -127,5 +136,10 @@ def test_1():
         v = digits.target[i]
         targets[v, i] = 1
 
-    for i in range(1):
-        nn, approx = adaptive_training(nn, data, targets, data, targets)
+    gamma = find_params(nn, data, targets, data, targets, 1)
+    print(gamma)
+    #nn.gamma = gamma
+    nn, approx = adaptive_training(nn, data, targets, data, targets, threshold=0.95)
+    #save_network_to_file(nn)
+    #nn = load_network_from_file('network0.pkl')
+    #nn, approx = adaptive_training(nn, data, targets, data, targets, threshold=0.95)
