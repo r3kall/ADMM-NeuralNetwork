@@ -1,11 +1,11 @@
 import math
-import pytest
 import time
+
 import numpy
 from sklearn import datasets
 
 import auxiliaries
-from model.neuralnetwork import NeuralNetwork
+from neuralnetwork import NeuralNetwork
 
 __author__ = "Lorenzo Rutigliano, lnz.rutigliano@gmail.com"
 
@@ -109,7 +109,7 @@ def test_1():
     n = 1797
     test = n
     hidden1 = 12
-    nn = NeuralNetwork(indim, outdim, n, hidden1)
+    nn = NeuralNetwork(n, indim, outdim, hidden1)
 
     """
     iris = datasets.load_iris()

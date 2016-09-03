@@ -2,7 +2,7 @@ import numpy as np
 import numpy.matlib
 import time
 
-from model.admm import weight_update, activation_update, argminz, argminlastz, lambda_update
+from algorithms.admm import weight_update, activation_update, argminz, argminlastz, lambda_update
 
 __author__ = 'Lorenzo Rutigliano, lnz.rutigliano@gmail.com'
 
