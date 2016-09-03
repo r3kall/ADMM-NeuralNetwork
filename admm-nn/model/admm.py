@@ -25,7 +25,7 @@ For a complete reading:
 """
 
 
-@profile
+#@profile
 def weight_update(layer_output, activation_input):
     """
     Consider it now the minimization of the problem with respect to W_l.
@@ -53,7 +53,7 @@ def _activation_formulate(next_weight, next_layer_output, layer_nl_output, beta,
     return m1 + m2
 
 
-@profile
+#@profile
 def activation_update(next_weight, next_layer_output, layer_nl_output, beta, gamma):
     """
     Minimization for a_l is a simple least squares problem similar to the weight update.
@@ -99,7 +99,7 @@ def _minimize(a, m, alpha, beta):
         return sol
 
 
-@profile
+#@profile
 def argminz(a, w, a_in, gamma, beta):
     """
     This problem is non-convex and non-quadratic (because of the non-linear term h).
@@ -144,7 +144,7 @@ def _minimizelast(y, eps, m, beta):
             return m - (eps / (2 * beta))
 
 
-@profile
+#@profile
 def argminlastz(targets, eps, w, a_in, beta):
     m = np.dot(w, a_in)
     x = targets.shape[0]
@@ -156,7 +156,7 @@ def argminlastz(targets, eps, w, a_in, beta):
     return z
 
 
-@profile
+#@profile
 def lambda_update(zl, w, a_in, beta):
     mpt = np.dot(w, a_in)
     return beta * (zl - mpt)

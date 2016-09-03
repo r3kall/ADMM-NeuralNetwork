@@ -11,7 +11,7 @@ from model.admm import weight_update, activation_update, \
 __author__ = "Lorenzo Rutigliano, lnz.rutigliano@gmail.com"
 
 log = defineLogger(Loggers.STANDARD)
-log.setLevel(Levels.DEBUG.value)
+#log.setLevel(Levels.DEBUG.value)
 
 
 class NeuralNetwork(object):
