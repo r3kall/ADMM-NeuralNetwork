@@ -26,20 +26,6 @@ def check_dimensions(a, n, m):
     log.debug("Function '%s' validates the array" % check_dimensions.__name__)
 
 
-def binary_loss(z, y):
-    if y == 1:
-        return np.maximum(0, 1 - z)
-    return np.maximum(0, z)
-
-
-def binary_loss_sum(z, y):
-    c = 0
-    for j in range(z.shape[1]):
-        for i in range(z.shape[0]):
-            c += binary_loss(z[i, j], y[i, j])
-    return c / (z.shape[0] * z.shape[1])
-
-
 def get_max_index(a):
     mx = a[0]
     index = 0
@@ -50,6 +36,26 @@ def get_max_index(a):
     return index
 
 
+def convert_binary_to_number(t, dim):
+    assert len(t) == dim
+    for i in range(dim):
+        if t[i] == 1:
+            return i
+    raise ValueError("Target not valid !!")
+
+
+def minus(x, n):
+    return np.maximum(1, x - n)
+
+
+def omega(x, low, high):
+    l = len(str(x))
+    if l > 3:
+        exp = int(min(math.pow(10, l - 3), high))
+        return int(np.log(x) * exp)
+    return low
+
+
 def get_percentage(percentage, n):
     assert 0 <= percentage <= 100
     if percentage == 0:
@@ -57,11 +63,3 @@ def get_percentage(percentage, n):
     if percentage == 100:
         return n
     return math.floor((n/100)*percentage)
-
-
-def convert_binary_to_number(t, dim):
-    assert len(t) == dim
-    for i in range(dim):
-        if t[i] == 1:
-            return i
-    raise ValueError("Target not valid !!")

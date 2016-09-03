@@ -1,7 +1,6 @@
 import numpy as np
 import numpy.matlib
 
-#from neuralnetwork import NeuralNetwork
 import neuralnetwork
 
 __author__ = 'Lorenzo Rutigliano, lnz.rutigliano@gmail.com'
@@ -67,7 +66,8 @@ def load_network_from_file(filename):
         outputs         = store_dict["outputs"]
         activations     = store_dict["activations"]
 
-    net = neuralnetwork.NeuralNetwork(training_space, features, classes, *layers, beta=beta, gamma=gamma)
+    net = neuralnetwork.NeuralNetwork(training_space, features, classes,
+                                      *layers, beta=beta, gamma=gamma)
     net.w = weights
     net.z = outputs
     net.a = activations

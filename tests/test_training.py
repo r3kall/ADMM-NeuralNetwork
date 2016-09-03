@@ -1,11 +1,12 @@
 import pytest
 import math
 import time
-import numpy
+import numpy as np
 from sklearn import datasets
 from copy import deepcopy
 
-import auxiliaries
+import commons
+from functions import evaluation
 from neuralnetwork import NeuralNetwork
 from neuraltools import save_network_to_file, load_network_from_file
 
@@ -18,20 +19,20 @@ def epoch(nn, samples, targets, tst_samples, tst_targets, train_iter=1, warm_ite
     for i in range(train_iter):
         nn.train(samples, targets)
     endt = time.time() - st
-    print("Training time: %s" % numpy.round(endt, decimals=4))
+    print("Training time: %s" % np.round(endt, decimals=4))
 
     res = nn.feedforward(tst_samples)
     test = res.shape[1]
-    loss = auxiliaries.binary_loss_sum(res, tst_targets)
-    print("Mean Loss: %s" % str(numpy.round(loss, decimals=4)))
+    loss = evaluation["mean_binary_loss"](res, tst_targets)
+    print("Mean Loss: %s" % str(np.round(loss, decimals=4)))
     c = 0
     for i in range(test):
-        output = auxiliaries.get_max_index(res[:, i])
-        label = auxiliaries.convert_binary_to_number(tst_targets[:, i], 10)
+        output = commons.get_max_index(res[:, i])
+        label = commons.convert_binary_to_number(tst_targets[:, i], 10)
         if output == label:
             c += 1
     print("Accuracy: %s/%s" % (c, test))
-    approx = numpy.round(float(c)/float(test), decimals=4)
+    approx = np.round(float(c)/float(test), decimals=4)
     print("Approx: %s" % approx)
     print("=============")
     return nn, approx
@@ -44,14 +45,14 @@ def warmepochs(nn, samples, targets, iter):
 
 
 def _minus(x, n):
-    return numpy.maximum(1, x - n)
+    return np.maximum(1, x - n)
 
 
 def _omega(x, minx, max):
     l = len(str(x))
     if l > 3:
         exp = int(min(math.pow(10, l-3), max))
-        return int(numpy.log(x) * exp)
+        return int(np.log(x) * exp)
     return minx
 
 
@@ -131,7 +132,7 @@ def test_1():
 
     digits = datasets.load_digits()
     data = digits.data.T
-    targets = numpy.mat(numpy.zeros((10, 1797)))
+    targets = np.mat(np.zeros((10, 1797)))
     for i in range(1797):
         v = digits.target[i]
         targets[v, i] = 1
