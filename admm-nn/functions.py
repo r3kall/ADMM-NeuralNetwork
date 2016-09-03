@@ -73,51 +73,55 @@ def ndsigmoid(signal):
 
 activation = {
     "relu"          : relu,
-    "sigmoid"    : ndsigmoid,
+    "sigmoid"       : ndsigmoid,
 }
 
 ##########################################################################################
 ##              Evaluation Functions ---> z, y are numpy matrix                         ##
 ##########################################################################################
 
-# MEANS WRONG
-def mbhe(z, y):
-    # Mean binary hinge error
-    return np.mean([abse(z[i, j], y[i, j]) for i, j in
-                    zip(range(z.shape[0]), range(z.shape[1]))], dtype='float64')
-# end evaluation function
-
 
 def cle(z, y):
     # Classification error
-    return np.sum([[1.0 for i, j in zip(z[:, w], y[:, w]) if i != j] for w in
-                   range(z.shape[1])], dtype='float64') / (z.shape[0] * z.shape[1])
+    e = [1.0 for k in range(z.shape[0]) for w in range(z.shape[1]) if z[k, w] != y[k, w]]
+    return np.mean(e, dtype='float64')
+# end evaluation function
+
+
+def mbhe(z, y):
+    # Mean binary hinge error
+    e = [bhe(z[k, w], y[k, w]) for k in range(z.shape[0]) for w in range(z.shape[1])]
+    return np.mean(e, dtype='float64')
 # end evaluation function
 
 
 def mabse(z, y):
     # Mean absolute error
-    return np.mean([abse(z[i, j], y[i, j]) for i, j in
-                    zip(range(z.shape[0]), range(z.shape[1]))], dtype='float64')
+    e = [abse(z[k, w], y[k, w]) for k in range(z.shape[0]) for w in range(z.shape[1])]
+    return np.mean(e, dtype='float64')
 # end evaluation function
 
 
 def msqe(z, y):
     # Mean squarred error
-    return np.mean([sqe(z[i, j], y[i, j]) for i, j in
-                    zip(range(z.shape[0]), range(z.shape[1]))], dtype='float64')
+    e = [sqe(z[k, w], y[k, w]) for k in range(z.shape[0]) for w in range(z.shape[1])]
+    return np.mean(e, dtype='float64')
 # end evaluation function
 
 
 def msqloge(z, y):
     # Mean squarred log error
-    return np.mean([sqloge(z[i, j], y[i, j]) for i, j in
-                    zip(range(z.shape[0]), range(z.shape[1]))], dtype='float64')
+    e = [sqloge(z[k, w], y[k, w]) for k in range(z.shape[0]) for w in range(z.shape[1])]
+    return np.mean(e, dtype='float64')
 # end evaluation function
 
 
 evaluation = {
-
+    "classification_error"      : cle,
+    "mean_binary_loss"          : mbhe,
+    "mean_absolute_error"       : mabse,
+    "mean_squarred_error"       : msqe,
+    "mean_squarred_log_error"   : msqloge,
 }
 
 
