@@ -6,6 +6,7 @@ from sklearn import datasets
 from copy import deepcopy
 
 import commons
+from data_processing import Mnist
 from functions import evaluation
 from neuralnetwork import NeuralNetwork
 from neuraltools import save_network_to_file, load_network_from_file
@@ -57,7 +58,8 @@ def _omega(x, minx, max):
 
 
 def adaptive_training(nn, samples, targets, tst_samples, tst_targets, threshold=0.95, interval=5):
-    i = _omega(samples.shape[1], 10, 100)
+    i = np.minimum(_omega(samples.shape[1], 10, 100), 100)
+    print(i)
     approx = 0.
     count = 0
     diff = 0.
@@ -67,15 +69,11 @@ def adaptive_training(nn, samples, targets, tst_samples, tst_targets, threshold=
         if count % interval == 0 and count != 0:
             if diff / interval < 0.005 and not t:
                 print("boost")
-                i += 100
+                i += np.minimum(_omega(samples.shape[1], 10, 100), 100)
                 t = True
             diff = 0
-        elif threshold - approx <= 0.01:
-            i = _minus(i, i // 100)
-        elif threshold - approx <= 0.1:
+        else:
             i = _minus(i, i // 10)
-        elif threshold - approx <= 0.5:
-            i = _minus(i, i // 3)
         nn, approx = epoch(nn, samples, targets,
                            tst_samples, tst_targets, warm_iter=i)
         diff += approx - tmp
@@ -86,17 +84,20 @@ def adaptive_training(nn, samples, targets, tst_samples, tst_targets, threshold=
 
 
 def find_params(nn, samples, targets, tst_samples, tst_targets, eps):
-    nn0, approx = epoch(deepcopy(nn), samples, targets, tst_samples, tst_targets)
+    nn0, approx = epoch(deepcopy(nn), samples, targets,
+                        tst_samples, tst_targets, warm_iter=1)
     count = 10
     gamma = nn.gamma
     v = 0
     while count > 0 and gamma - eps > 0:
         if v >= 0:
             nn.gamma = gamma + eps
-            nnp, p = epoch(deepcopy(nn), samples, targets, tst_samples, tst_targets)
+            nnp, p = epoch(deepcopy(nn), samples, targets,
+                           tst_samples, tst_targets, warm_iter=1)
         if v <= 0:
             nn.gamma = gamma - eps
-            nnt, t = epoch(deepcopy(nn), samples, targets, tst_samples, tst_targets)
+            nnt, t = epoch(deepcopy(nn), samples, targets,
+                           tst_samples, tst_targets, warm_iter=1)
         if approx >= p and approx >= t:
             return gamma
         if p > t:
@@ -114,33 +115,15 @@ def find_params(nn, samples, targets, tst_samples, tst_targets, eps):
 def test_1():
     print()
     print("=============")
-    indim = 64
+    tst = Mnist.getTestingSet()
+    trn = Mnist.getTrainingSet()
+    dimtrn = 60000
+    dimtst = 10000
+    indim = 784
     outdim = 10
-    n = 1797
-    test = n
-    hidden1 = 20
-    nn = NeuralNetwork(n, indim, outdim, hidden1)
+    hidden1 = 100
 
-    """
-    iris = datasets.load_iris()
-    data = iris.data.T
-    targets = numpy.mat(numpy.zeros((3, 150)))
-    for i in range(150):
-        v = iris.target[i]
-        targets[v, i] = 1
-    """
-
-    digits = datasets.load_digits()
-    data = digits.data.T
-    targets = np.mat(np.zeros((10, 1797)))
-    for i in range(1797):
-        v = digits.target[i]
-        targets[v, i] = 1
-
-    gamma = find_params(nn, data, targets, data, targets, 1)
-    print(gamma)
-    #nn.gamma = gamma
-    nn, approx = adaptive_training(nn, data, targets, data, targets, threshold=0.95)
-    #save_network_to_file(nn)
-    #nn = load_network_from_file('network0.pkl')
-    #nn, approx = adaptive_training(nn, data, targets, data, targets, threshold=0.95)
+    nn = NeuralNetwork(dimtrn, indim, outdim, hidden1, gamma=9., beta=0.5) # gamma = 9 beta = 0.5
+    nn, approx = epoch(nn, trn['x'], trn['y'], tst['x'], tst['y'], warm_iter=1)
+    while approx < 0.8:
+        nn, approx = epoch(nn, trn['x'], trn['y'], tst['x'], tst['y'], train_iter=1, warm_iter=1)

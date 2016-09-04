@@ -22,7 +22,7 @@ default_settings = {
 class NeuralNetwork(object):
     # Neural Network Model
     def __init__(self, training_space, features, classes, *layers,
-                 beta=1., gamma=10., settings=default_settings):
+                 beta=1.0, gamma=10.0, settings=default_settings):
         self.__dict__.update(settings)
 
         assert len(layers) > 0 and features > 0 and classes > 0 and training_space > 0
@@ -83,7 +83,6 @@ class NeuralNetwork(object):
         # evaluate the output signal with the evaluation function
         return self.error_function(out, targets)
     # end
-
 # end class NeuralNetwork
 
 

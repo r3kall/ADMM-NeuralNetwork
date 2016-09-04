@@ -3,7 +3,7 @@ from distutils.core import setup
 setup(
     name='ADMM-NeuralNetwork',
     version='0.1.0',
-    packages=['admm-nn', 'admm-nn.algorithms'],
+    packages=['src', 'src.algorithms', 'tests',],
     url='',
     license='',
     author='lnz',
