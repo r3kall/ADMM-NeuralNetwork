@@ -1,5 +1,5 @@
 import numpy as np
-
+from cyth.minc import minimize
 import warnings
 import time
 
@@ -112,18 +112,18 @@ def argminz(a, w, a_in, gamma, beta):
     :param a_in:activation matrix a_l-1
     :return: output matrix z_l
     """
-
+    st = time.time()
     m = np.dot(w, a_in)
     x = a.shape[0]
     y = a.shape[1]
     z = np.mat(np.zeros((x, y)))
     for i in range(x):
-        st = time.time()
-        for j in range(y):
-            z[i, j] = _minimize(a[i, j], m[i, j], gamma, beta)
 
-        endt = time.time() - st
-        print(endt)
+        for j in range(y):
+            z[i, j] = minimize(a[i, j], m[i, j], gamma, beta)
+
+    endt = time.time() - st
+    print(endt)
     return z
 
 

@@ -1,7 +1,4 @@
 
-import numpy as np
-import time
-
 from data_processing import Mnist
 from neuralnetwork import NeuralNetwork
 
