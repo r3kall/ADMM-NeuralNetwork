@@ -125,6 +125,23 @@ def find_params(nn, samples, targets, tst_samples, tst_targets, eps):
     return gamma
 
 
+def test_mnist():
+    print()
+    print("=============")
+    trnset = Mnist.getTrainingSet()
+    tstset = Mnist.getTestingSet()
+    trnx = trnset['x']
+    trny = trnset['y']
+    tstx = tstset['x']
+    tsty = tstset['y']
+
+    nn = NeuralNetwork(trnx.shape[1], trnx.shape[0], trny.shape[0], 300)
+    nn, approx = epoch(nn, trnx, trny, tstx, tsty, train_iter=0, warm_iter=5)
+    while approx < 0.8:
+        nn, approx = epoch(nn, trnx, trny, tstx, tsty, train_iter=1, warm_iter=4)
+    save_network_to_file(nn)
+
+
 def test_digits():
     print()
     print("=============")

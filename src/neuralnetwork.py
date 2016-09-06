@@ -14,7 +14,7 @@ __author__ = "Lorenzo Rutigliano, lnz.rutigliano@gmail.com"
 class NeuralNetwork(object):
     # Neural Network Model
     def __init__(self, training_space, features, classes, *layers,
-                 beta=1.0, gamma=10.0, loss='binary'):
+                 beta=1., gamma=10., loss='binary'):
 
         assert len(layers) > 0 and features > 0 and classes > 0 and training_space > 0
         self.parameters = (training_space, features, classes, layers)
