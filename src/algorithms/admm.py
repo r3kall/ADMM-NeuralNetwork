@@ -1,9 +1,5 @@
 import numpy as np
-from cyth.minc import minimize
-import warnings
-import time
-
-warnings.filterwarnings("error")
+from cyth.argminc import argminc
 
 __author__ = "Lorenzo Rutigliano, lnz.rutigliano@gmail.com"
 
@@ -36,7 +32,6 @@ def weight_update(layer_output, activation_input):
     :param activation_input:    activation matrix a_l-1
     :return:    weight matrix W_l
     """
-
     ap_ps = np.linalg.pinv(activation_input)
     return np.dot(layer_output, ap_ps)
 
@@ -80,18 +75,13 @@ def _minimize(a, m, alpha, beta):
         h(x) = |
                | 0, otherwise
     """
-
     if a <= 0 and m <= 0:
         return m
     sol = ((alpha * a) + (beta * m)) / (alpha + beta)
     if a >= 0 and m >= 0:
         return sol
     if m < 0 < a:
-        try:
-            t = a ** 2
-        except RuntimeWarning:
-            return sol
-        if sol > t:
+        if sol > (a ** 2):
             return sol
         else:
             return m
@@ -112,57 +102,19 @@ def argminz(a, w, a_in, gamma, beta):
     :param a_in:activation matrix a_l-1
     :return: output matrix z_l
     """
-    st = time.time()
     m = np.dot(w, a_in)
+    """
     x = a.shape[0]
     y = a.shape[1]
     z = np.mat(np.zeros((x, y)))
     for i in range(x):
-
         for j in range(y):
-            z[i, j] = minimize(a[i, j], m[i, j], gamma, beta)
-
-    endt = time.time() - st
-    print(endt)
-    return z
-
-
-def _minimizelast(y, eps, m, beta):
+            z[i, j] = _minimize(a[i, j], m[i, j], gamma, beta)
     """
-    Minimization of z_L using the following loss function:
-
-                  | max{1 - z, 0}, when y = 1
-        l(z, y) = |
-                  | max{z, 0}, when y = 0
-    """
-    if y == 0:
-        if m >= ((1 + eps) / (2 * beta)):
-            return m - ((1 + eps) / (2 * beta))
-        else:
-            return m - (eps / (2 * beta))
-    else:
-        sol = m + ((1 - eps) / (2 * beta))
-        if sol <= 1:
-            return sol
-        else:
-            return m - (eps / (2 * beta))
-
-
-def argminlastz(targets, eps, w, a_in, beta):
-    m = np.dot(w, a_in)
-    x = targets.shape[0]
-    y = targets.shape[1]
-    z = np.mat(np.zeros((x, y)))
-    for i in range(x):
-        for j in range(y):
-            z[i, j] = _minimizelast(targets[i, j], eps[i, j], m[i, j], beta)
+    z = argminc(a, m, gamma, beta)
     return z
 
 
 def lambda_update(zl, w, a_in, beta):
     mpt = np.dot(w, a_in)
     return beta * (zl - mpt)
-
-
-if __name__ == "__main__":
-    pass

@@ -2,12 +2,12 @@ import pytest
 import math
 import time
 import numpy as np
-from sklearn import datasets
 from copy import deepcopy
+from sklearn import datasets
 
 import commons
 from data_processing import Mnist
-from functions import evaluation
+from functions import mbhe
 from neuralnetwork import NeuralNetwork
 from neuraltools import save_network_to_file, load_network_from_file
 
@@ -24,7 +24,7 @@ def epoch(nn, samples, targets, tst_samples, tst_targets, train_iter=1, warm_ite
 
     res = nn.feedforward(tst_samples)
     test = res.shape[1]
-    loss = evaluation["mean_binary_loss"](res, tst_targets)
+    loss = mbhe(res, tst_targets)
     print("Mean Loss: %s" % str(np.round(loss, decimals=4)))
     c = 0
     for i in range(test):
@@ -35,6 +35,8 @@ def epoch(nn, samples, targets, tst_samples, tst_targets, train_iter=1, warm_ite
     print("Accuracy: %s/%s" % (c, test))
     approx = np.round(float(c)/float(test), decimals=4)
     print("Approx: %s" % approx)
+    resid = np.round(residual(nn.z[-1], nn.w[-1], nn.a[-2], nn.beta), decimals=6)
+    print("Residual: %s" % str(resid))
     print("=============")
     return nn, approx
 
@@ -43,6 +45,17 @@ def warmepochs(nn, samples, targets, iter):
     for i in range(iter):
         nn.warmstart(samples, targets)
     return nn
+
+
+def residual(z, w, a_in, beta):
+    m = beta * np.mat((z - np.dot(w, a_in)))
+    rows = m.shape[0]
+    cols = m.shape[1]
+    c = 0
+    for i in range(rows):
+        for j in range(cols):
+            c += np.abs(m[i, j])
+    return c / (rows * cols)
 
 
 def _minus(x, n):
@@ -73,9 +86,9 @@ def adaptive_training(nn, samples, targets, tst_samples, tst_targets, threshold=
                 t = True
             diff = 0
         else:
-            i = _minus(i, i // 10)
+            i = _minus(i, i // 20)
         nn, approx = epoch(nn, samples, targets,
-                           tst_samples, tst_targets, warm_iter=i)
+                           tst_samples, tst_targets, warm_iter=i, train_iter=1)
         diff += approx - tmp
         count += 1
         print(i)
@@ -112,18 +125,25 @@ def find_params(nn, samples, targets, tst_samples, tst_targets, eps):
     return gamma
 
 
-def test_1():
+def test_digits():
     print()
     print("=============")
-    tst = Mnist.getTestingSet()
-    trn = Mnist.getTrainingSet()
-    dimtrn = 60000
-    dimtst = 10000
-    indim = 784
-    outdim = 10
-    hidden1 = 100
+    dataset = datasets.load_digits()
+    samples = dataset.data.T
+    labels = dataset.target
+    targets = np.mat(np.zeros((10, len(labels)), dtype=np.uint8))
+    for i in range(len(labels)):
+        v = labels[i]
+        targets[v, i] = 1
 
-    nn = NeuralNetwork(dimtrn, indim, outdim, hidden1, gamma=9., beta=0.5) # gamma = 9 beta = 0.5
-    nn, approx = epoch(nn, trn['x'], trn['y'], tst['x'], tst['y'], warm_iter=1)
-    while approx < 0.8:
-        nn, approx = epoch(nn, trn['x'], trn['y'], tst['x'], tst['y'], train_iter=1, warm_iter=1)
+    nn = NeuralNetwork(1797, 64, 10, 100)
+
+    nn, approx = epoch(nn, samples, targets, samples, targets,
+                              train_iter=1, warm_iter=10)
+    c = 0
+    while approx < 0.95:
+        c += 1
+        time.sleep(1)
+        nn, approx = epoch(nn, samples, targets, samples, targets,
+                                  train_iter=1, warm_iter=2)
+    print(c)

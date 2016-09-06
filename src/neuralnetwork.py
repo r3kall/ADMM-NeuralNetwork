@@ -1,29 +1,20 @@
 import numpy as np
 
-from functions import cost, activation, evaluation
-from logger import defineLogger, Loggers, Levels
-from algorithms.admm import weight_update, activation_update, \
-    lambda_update, argminz, argminlastz
+from functions import relu
+from algorithms.admm import weight_update, activation_update, argminz, lambda_update
 from neuraltools import generate_weights, generate_gaussian
 
-__author__ = "Lorenzo Rutigliano, lnz.rutigliano@gmail.com"
-
+from logger import defineLogger, Loggers, Levels
 log = defineLogger(Loggers.STANDARD)
 log.setLevel(Levels.INFO.value)
 
-
-default_settings = {
-    "activation_function"   : activation["relu"],
-    "cost_function"         : cost["binary_loss"],
-    "error_function"        : evaluation["classification_error"]
-}
+__author__ = "Lorenzo Rutigliano, lnz.rutigliano@gmail.com"
 
 
 class NeuralNetwork(object):
     # Neural Network Model
     def __init__(self, training_space, features, classes, *layers,
-                 beta=1.0, gamma=10.0, settings=default_settings):
-        self.__dict__.update(settings)
+                 beta=1.0, gamma=10.0, loss='binary'):
 
         assert len(layers) > 0 and features > 0 and classes > 0 and training_space > 0
         self.parameters = (training_space, features, classes, layers)
@@ -32,6 +23,9 @@ class NeuralNetwork(object):
         self.beta = beta
         self.gamma = gamma
 
+        self.argminlastz, self.error = self._setalg(loss)
+        self.activation_function = relu
+
         t = (features,) + layers + (classes,)
         self.w = generate_weights(t)
         self.z = generate_gaussian(t, training_space)
@@ -39,10 +33,18 @@ class NeuralNetwork(object):
         self.l = np.mat(np.zeros((classes, training_space), dtype='float64'))
     # end
 
+    def _setalg(self, loss):
+        if loss == 'binary':
+            from algorithms.hingebinary import argminlastz, bhe
+            return argminlastz, bhe
+        else:
+            return None, None
+    # end
+
     def train(self, training_data, training_targets):
         self._train_hidden_layers(training_data)
         self.w[-1] = weight_update(self.z[-1], self.a[-2])
-        self.z[-1] = argminlastz(training_targets, self.l, self.w[-1], self.a[-2], self.beta)
+        self.z[-1] = self.argminlastz(training_targets, self.l, self.w[-1], self.a[-2], self.beta)
         self.l += lambda_update(self.z[-1], self.w[-1], self.a[-2], self.beta)
     # end
 
@@ -50,7 +52,7 @@ class NeuralNetwork(object):
         # Train the net without the Lagrangian update
         self._train_hidden_layers(training_data)
         self.w[-1] = weight_update(self.z[-1], self.a[-2])
-        self.z[-1] = argminlastz(training_targets, self.l, self.w[-1], self.a[-2], self.beta)
+        self.z[-1] = self.argminlastz(training_targets, self.l, self.w[-1], self.a[-2], self.beta)
     # end
 
     def _train_hidden_layers(self, a):
@@ -81,12 +83,12 @@ class NeuralNetwork(object):
         # perform a forward operation to calculate the output signal
         out = self.feedforward(data)
         # evaluate the output signal with the evaluation function
-        return self.error_function(out, targets)
+        return self.error(out, targets)
     # end
 # end class NeuralNetwork
 
 
-class Instance:
+class Instance(object):
     # This is a simple encapsulation of a `input signal : output signal`
     # pair in our training set.
     def __init__(self, samples, targets):
