@@ -28,7 +28,7 @@ class Mnist(DataProcessing):
     @staticmethod
     def _build_data_set(imagefile, labelfile, picklename):
         from struct import unpack
-        from numpy import zeros, uint8, mat
+        from numpy import zeros, uint8, float64
         import pickle
         import gzip
 
@@ -61,26 +61,32 @@ class Mnist(DataProcessing):
             labels.read(4)  # skip the magic_number
             N = labels.read(4)
             N = unpack('>I', N)[0]
-            print(N)
 
             if number_of_images != N:
                 raise Exception('The number of labels did not match '
                                 'the number of images.')
 
             # Get the data
-            x = zeros((rows * cols, N), dtype=uint8)  # Initialize numpy array
-            y = zeros((1, N), dtype=uint8)  # Initialize numpy array
+            x = zeros((N, rows, cols), dtype=float64)  # Initialize numpy array
+            y = zeros((N, 1), dtype=uint8)  # Initialize numpy array
             for i in range(N):
                 if i % 1000 == 0:
                     print("i: %i" % i)
-                for j in range(rows * cols):
-                    tmp_pixel = images.read(1)  # Just a single byte
-                    tmp_pixel = unpack('>B', tmp_pixel)[0]
-                    x[j][i] = (float(tmp_pixel) / 255)
+                for row in range(rows):
+                    for col in range(cols):
+                        tmp_pixel = images.read(1)  # Just a single byte
+                        tmp_pixel = unpack('>B', tmp_pixel)[0]
+                        x[i][row][col] = (float(tmp_pixel) / 255)
                 tmp_label = labels.read(1)
-                y[0][i] = unpack('>B', tmp_label)[0]
-            y = Mnist._convert_to_binary(y)
-            data = {'x': mat(x), 'y': mat(y), 'rows': rows, 'cols': cols}
+                y[i] = unpack('>B', tmp_label)[0]
+
+            xf = zeros((rows * cols, N), dtype=float64)  # Initialize numpy array
+            yf = np.mat(Mnist._convert_to_binary(y))  # Initialize numpy array
+            for i in range(N):
+                xf[:, i] = np.ravel(x[i])
+            xf = np.mat(xf)
+
+            data = {'x': xf, 'y': yf, 'rows': rows, 'cols': cols}
             with open(f, 'wb') as file:
                 pickle.dump(data, file, -1)
         return data
@@ -89,9 +95,9 @@ class Mnist(DataProcessing):
 
     @staticmethod
     def _convert_to_binary(m):
-        targets = np.mat(np.zeros((10, m.shape[1]), dtype=np.uint8))
-        for i in range(m.shape[1]):
-            v = m[0][i]
+        targets = np.mat(np.zeros((10, m.shape[0]), dtype=np.uint8))
+        for i in range(m.shape[0]):
+            v = m[i][0]
             targets[v, i] = 1
         return targets
     # end
@@ -114,5 +120,19 @@ class Mnist(DataProcessing):
             'mnist_training'
         )
     #end
-
 # end class Mnist
+
+
+import matplotlib.pyplot as plt
+def view_image(image, label=""):
+    """View a single image."""
+    print("Label: %s" % label)
+    plt.imshow(image, cmap=plt.cm.gray)
+    plt.show()
+
+
+def main():
+    pass
+
+if __name__ == '__main__':
+    main()
