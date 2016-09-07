@@ -75,6 +75,7 @@ def _minimize(a, m, alpha, beta):
         h(x) = |
                | 0, otherwise
     """
+    """
     if a <= 0 and m <= 0:
         return m
     sol = ((alpha * a) + (beta * m)) / (alpha + beta)
@@ -87,6 +88,10 @@ def _minimize(a, m, alpha, beta):
             return m
     if a < 0 < m:
         return sol
+    """
+    if (alpha * a) > -(beta * m):
+        return ((alpha * a) + (beta * m)) / (alpha + beta)
+    return m
 
 
 def argminz(a, w, a_in, gamma, beta):

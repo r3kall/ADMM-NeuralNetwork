@@ -23,6 +23,12 @@ cdef minimize(DTYPE_t a, DTYPE_t m, double alpha, double beta):
         return sol
 
 
+cdef minimizec(DTYPE_t a, DTYPE_t m, double alpha, double beta):
+    if (alpha * a) > -(beta * m):
+        return ((alpha * a) + (beta * m)) / (alpha + beta)
+    return m
+
+
 def argminc(np.ndarray[DTYPE_t, ndim=2] a, np.ndarray[DTYPE_t, ndim=2] m, double gamma, double beta):
     cdef int x = a.shape[0]
     cdef int y = a.shape[1]
@@ -30,5 +36,5 @@ def argminc(np.ndarray[DTYPE_t, ndim=2] a, np.ndarray[DTYPE_t, ndim=2] m, double
 
     for i in range(x):
         for j in range(y):
-            z[i, j] = minimize(a[i, j], m[i, j], gamma, beta)
+            z[i, j] = minimizec(a[i, j], m[i, j], gamma, beta)
     return z
