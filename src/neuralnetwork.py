@@ -2,7 +2,7 @@ import numpy as np
 
 from functions import relu
 from algorithms.admm import weight_update, activation_update, argminz, lambda_update
-from neuraltools import generate_weights, generate_gaussian
+from neuraltools import generate_weights, generate_outputs, generate_activations
 
 from logger import defineLogger, Loggers, Levels
 log = defineLogger(Loggers.STANDARD)
@@ -28,8 +28,8 @@ class NeuralNetwork(object):
 
         t = (features,) + layers + (classes,)
         self.w = generate_weights(t)
-        self.z = generate_gaussian(t, training_space)
-        self.a = generate_gaussian(t, training_space)
+        self.z = generate_outputs(t, training_space)
+        self.a = generate_activations(t, training_space)
         self.l = np.mat(np.zeros((classes, training_space), dtype='float64'))
     # end
 
@@ -43,16 +43,16 @@ class NeuralNetwork(object):
 
     def train(self, training_data, training_targets):
         self._train_hidden_layers(training_data)
-        self.w[-1] = weight_update(self.z[-1], self.a[-2])
-        self.z[-1] = self.argminlastz(training_targets, self.l, self.w[-1], self.a[-2], self.beta)
-        self.l += lambda_update(self.z[-1], self.w[-1], self.a[-2], self.beta)
+        self.w[-1] = weight_update(self.z[-1], self.a[-1])
+        self.z[-1] = self.argminlastz(training_targets, self.l, self.w[-1], self.a[-1], self.beta)
+        self.l += lambda_update(self.z[-1], self.w[-1], self.a[-1], self.beta)
     # end
 
     def warmstart(self, training_data, training_targets):
         # Train the net without the Lagrangian update
         self._train_hidden_layers(training_data)
-        self.w[-1] = weight_update(self.z[-1], self.a[-2])
-        self.z[-1] = self.argminlastz(training_targets, self.l, self.w[-1], self.a[-2], self.beta)
+        self.w[-1] = weight_update(self.z[-1], self.a[-1])
+        self.z[-1] = self.argminlastz(training_targets, self.l, self.w[-1], self.a[-1], self.beta)
     # end
 
     def _train_hidden_layers(self, a):

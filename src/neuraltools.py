@@ -11,8 +11,13 @@ def generate_weights(t):
 # end tool
 
 
-def generate_gaussian(t, s):
+def generate_outputs(t, s):
     return [np.matlib.randn(t[i], s) for i in range(1, len(t))]
+# end tool
+
+
+def generate_activations(t, s):
+    return [np.matlib.randn(t[i], s) for i in range(1, len(t) - 1)]
 # end tool
 
 

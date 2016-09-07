@@ -36,6 +36,11 @@ def _minimizelast(y, eps, m, beta):
             return sol
         else:
             return m - (eps / (2 * beta))
+    """
+    if y == 0:
+        return 0
+    return 1
+    """
 # end
 
 
