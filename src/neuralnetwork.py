@@ -56,25 +56,25 @@ class NeuralNetwork(object):
     # end
 
     def _train_hidden_layers(self, a):
-        for i in range(self.dim - 1):
-            if i == 0:
-                a_in = a
-            else:
-                a_in = self.a[i - 1]
+        self.w[0] = weight_update(self.z[0], a)
+        self.a[0] = activation_update(self.w[1], self.z[1],
+                                      self.activation_function(self.z[0]),
+                                      self.beta, self.gamma)
+        self.z[0] = argminz(self.a[0], self.w[0], a, self.gamma, self.beta)
 
-            self.w[i] = weight_update(self.z[i], a_in)
+        for i in range(1, self.dim - 1):
+            self.w[i] = weight_update(self.z[i], self.a[i - 1])
             self.a[i] = activation_update(self.w[i + 1], self.z[i + 1],
                                           self.activation_function(self.z[i]),
                                           self.beta, self.gamma)
-            self.z[i] = argminz(self.a[i], self.w[i], a_in, self.gamma, self.beta)
+            self.z[i] = argminz(self.a[i], self.w[i], self.a[i - 1], self.gamma, self.beta)
     # end
 
     def feedforward(self, data):
         # This is a forward operation in the network. This is how we
         # calculate the network output from a set of input signals.
         for i in range(self.dim - 1):
-            z = np.dot(self.w[i], data)
-            data = self.activation_function(z)
+            data = self.activation_function(np.dot(self.w[i], data))
         # In the last layer we don't use the activation function
         return np.dot(self.w[-1], data)
     # end

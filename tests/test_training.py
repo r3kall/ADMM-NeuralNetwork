@@ -35,8 +35,8 @@ def epoch(nn, samples, targets, tst_samples, tst_targets, train_iter=1, warm_ite
     print("Accuracy: %s/%s" % (c, test))
     approx = np.round(float(c)/float(test), decimals=4)
     print("Approx: %s" % approx)
-    resid = np.round(residual(nn.z[-1], nn.w[-1], nn.a[-1], nn.beta), decimals=6)
-    print("Residual: %s" % str(resid))
+    #resid = np.round(residual(nn.z[-1], nn.w[-1], nn.a[-1], nn.beta), decimals=6)
+    #print("Residual: %s" % str(resid))
     print("=============")
     return nn, approx
 
@@ -136,31 +136,21 @@ def test_mnist():
     tsty = tstset['y']
 
     nn = NeuralNetwork(trnx.shape[1], trnx.shape[0], trny.shape[0], 300)
-    nn, approx = epoch(nn, trnx, trny, tstx, tsty, train_iter=1, warm_iter=10)
+    nn, approx = epoch(nn, trnx, trny, tstx, tsty, train_iter=1, warm_iter=1)
     while approx < 0.85:
-        nn, approx = epoch(nn, trnx, trny, tstx, tsty, train_iter=2, warm_iter=8)
+        nn, approx = epoch(nn, trnx, trny, tstx, tsty, train_iter=1, warm_iter=1)
 
 
 def test_digits():
     print()
     print("=============")
     dataset = datasets.load_digits()
-    samples = np.mat(dataset.data.T)
-    labels = dataset.target
-    targets = np.mat(np.zeros((10, len(labels)), dtype=np.uint8))
-    for i in range(len(labels)):
-        v = labels[i]
+    samples = dataset.data.T
+    targets = np.mat(np.zeros((10, 1797), dtype='uint8'))
+    for i in range(1797):
+        v = dataset.target[i]
         targets[v, i] = 1
 
-    nn = NeuralNetwork(1797, 64, 10, 32)
+    nn = NeuralNetwork(1797, 64, 10, 100)
 
-    nn, approx = epoch(nn, samples, targets, samples, targets,
-                              train_iter=1, warm_iter=20)
-
-    c = 0
-    while approx < 0.95:
-        c += 1
-        time.sleep(1)
-        nn, approx = epoch(nn, samples, targets, samples, targets,
-                                  train_iter=2, warm_iter=10)
-    print(c)
+    nn, approx = adaptive_training(nn, samples, targets, samples, targets, threshold=0.95)

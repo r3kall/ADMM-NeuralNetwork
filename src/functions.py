@@ -10,9 +10,10 @@ __author__ = 'Lorenzo Rutigliano, lnz.rutigliano@gmail.com'
 
 def bhe(z, y):
     # Binary hinge error
-    if y == 1:
+    if y == 0:
+        return np.maximum(0, z)
+    else:
         return np.maximum(0, 1 - z)
-    return np.maximum(0, z)
 # end cost function
 
 
