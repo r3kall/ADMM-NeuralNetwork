@@ -1,4 +1,5 @@
 import numpy as np
+
 from cyth.argminc import argminc
 
 __author__ = "Lorenzo Rutigliano, lnz.rutigliano@gmail.com"
@@ -26,19 +27,20 @@ def weight_update(layer_output, activation_input):
     Consider it now the minimization of the problem with respect to W_l.
     For each layer l, the optimal solution minimizes ||z_l - W_l a_l-1||^2. This is simply
     a least square problem, and the solution is given by W_l = z_l p_l-1, where p_l-1
-    represents the pseudoinverse of the rectangular acivation matrix a_l-1.
+    represents the pseudo-inverse of the rectangular activation matrix a_l-1.
 
     :param layer_output:        output matrix z_l
     :param activation_input:    activation matrix a_l-1
     :return:    weight matrix W_l
     """
-    ap_ps = np.linalg.pinv(activation_input)
-    return np.dot(layer_output, ap_ps)
+    ps = np.linalg.pinv(activation_input)
+    return np.dot(layer_output, ps)
+# end
 
 
 def _activation_inverse(next_weight, beta, gamma):
     m1 = beta * (np.dot(next_weight.T, next_weight))
-    m2 = (np.identity(next_weight.shape[1])) * gamma
+    m2 = gamma * (np.identity(next_weight.shape[1]))
     return np.linalg.inv(m1 + m2)
 
 
@@ -65,33 +67,7 @@ def activation_update(next_weight, next_layer_output, layer_nl_output, beta, gam
     m2 = _activation_formulate(next_weight, next_layer_output,
                                layer_nl_output, beta, gamma)
     return np.dot(m1, m2)
-
-
-def _minimize(a, m, alpha, beta):
-    """
-    Minimization of z_l using ReLUs:
-
-               | x, if x > 0
-        h(x) = |
-               | 0, otherwise
-    """
-    """
-    if a <= 0 and m <= 0:
-        return m
-    sol = ((alpha * a) + (beta * m)) / (alpha + beta)
-    if a >= 0 and m >= 0:
-        return sol
-    if m < 0 < a:
-        if sol > (a ** 2):
-            return sol
-        else:
-            return m
-    if a < 0 < m:
-        return sol
-    """
-    if (alpha * a) > -(beta * m):
-        return ((alpha * a) + (beta * m)) / (alpha + beta)
-    return m
+# end
 
 
 def argminz(a, w, a_in, gamma, beta):
@@ -108,18 +84,12 @@ def argminz(a, w, a_in, gamma, beta):
     :return: output matrix z_l
     """
     m = np.dot(w, a_in)
-    """
-    x = a.shape[0]
-    y = a.shape[1]
-    z = np.mat(np.zeros((x, y)))
-    for i in range(x):
-        for j in range(y):
-            z[i, j] = _minimize(a[i, j], m[i, j], gamma, beta)
-    """
     z = argminc(a, m, gamma, beta)
     return z
+# end
 
 
 def lambda_update(zl, w, a_in, beta):
     mpt = np.dot(w, a_in)
     return beta * (zl - mpt)
+# end

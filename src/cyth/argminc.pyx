@@ -9,24 +9,20 @@ ctypedef np.float64_t DTYPE_t
 
 
 cdef minimize(DTYPE_t a, DTYPE_t m, double alpha, double beta):
-    if a <= 0 and m <= 0:
-        return m
-    cdef double sol = ((alpha * a) + (beta * m)) / (alpha + beta)
-    if a >= 0 and m >= 0:
-        return sol
-    if m < 0 < a:
-        if sol > (a**2):
+    cdef DTYPE_t sol = ((alpha * a) + (beta * m)) / (alpha + beta)
+    if m >= 0:
+        if sol > 0:
             return sol
-        else:
+        return 0
+    else:
+        if a <= 0:
             return m
-    if a < 0 < m:
-        return sol
+        res1 = (alpha * ((a - (np.maximum(0, sol))) ** 2)) + (beta * ((sol - m) ** 2))
+        res2 = (alpha * ((a - (np.maximum(0, m))) ** 2))
+        if res1 <= res2:
+            return sol
+        return m
 
-
-cdef minimizec(DTYPE_t a, DTYPE_t m, double alpha, double beta):
-    if (alpha * a) > -(beta * m):
-        return ((alpha * a) + (beta * m)) / (alpha + beta)
-    return m
 
 
 def argminc(np.ndarray[DTYPE_t, ndim=2] a, np.ndarray[DTYPE_t, ndim=2] m, double gamma, double beta):
@@ -36,5 +32,5 @@ def argminc(np.ndarray[DTYPE_t, ndim=2] a, np.ndarray[DTYPE_t, ndim=2] m, double
 
     for i in range(x):
         for j in range(y):
-            z[i, j] = minimizec(a[i, j], m[i, j], gamma, beta)
+            z[i, j] = minimize(a[i, j], m[i, j], gamma, beta)
     return z

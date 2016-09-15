@@ -16,7 +16,7 @@ def bhe(z, y):
 # end cost function
 
 
-def _minimizelast(y, eps, m, beta):
+def _minimizelast(z, y, eps, m, beta):
     """
     Minimization of z_L using the binary hinge loss function:
 
@@ -26,53 +26,23 @@ def _minimizelast(y, eps, m, beta):
     """
 
     if y == 0:
-        if m >= ((1 + eps) / (2 * beta)):
-            return m - ((1 + eps) / (2 * beta))
-        else:
-            return m - (eps / (2 * beta))
+        m1 = np.maximum(0, z)
     else:
-        sol = m + ((1 - eps) / (2 * beta))
-        if sol <= 1:
-            return sol
-        else:
-            return m - (eps / (2 * beta))
+        m1 = np.maximum(0, 1 - z)
+    return m1 + (z * eps) + (beta * ((z - m) ** 2))
 # end
 
 
 def argminlastz(targets, eps, w, a_in, beta):
     m = np.dot(w, a_in)
-    """
+
     x = targets.shape[0]
     y = targets.shape[1]
-    z = np.mat(np.zeros((x, y), dtype='float64'))
+    z = np.mat(np.zeros((x, y)))
     for i in range(x):
         for j in range(y):
-            z[i, j] = _minimizelast(targets[i, j], eps[i, j], m[i, j], beta)
-    """
-    z = binarymin(targets, eps, m, beta)
+            z[i, j] = sp.optimize.minimize_scalar(_minimizelast, args=(targets[i, j], eps[i, j], m[i, j], beta)).x
+
+    # z = binarymin(targets, eps, m, beta)
     return z
 # end
-
-
-# my minimizer is better !! (really)
-def testfoo(z, targets, eps, m, beta):
-    cols = z.shape[1]
-    for j in range(cols):
-        t = sp.optimize.minimize(_foo, z[:, j],
-                                        args=(targets[:, j], eps[:, j], m[:, j], beta))
-        z[:, j] = np.reshape(t.x, (3, 1))
-    return z
-
-
-def _foo(z, y, eps, m, beta):
-    z = np.reshape(z, (3, 1))
-    count = 0
-    for i in range(len(z)):
-        if y[i] == 0:
-            m1 = np.maximum(0, z[i])
-        else:
-            m1 = np.maximum(0, 1 - z[i])
-        count += m1
-    m2 = np.dot(z.T, eps)
-    m3 = (np.linalg.norm(z - m)) ** 2
-    return count + m2 + m3

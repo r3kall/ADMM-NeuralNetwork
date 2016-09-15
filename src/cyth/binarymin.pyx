@@ -10,13 +10,13 @@ ctypedef np.float64_t DTYPE_t
 
 cdef minbhe(np.uint8_t y, DTYPE_t eps, DTYPE_t m, double beta):
     if y == 0:
-        if m >= ((1 + eps) / (2 * beta)):
+        if m > ((1 + eps) / (2 * beta)):
             return m - ((1 + eps) / (2 * beta))
         else:
             return m - (eps / (2 * beta))
     else:
         sol = m + ((1 - eps) / (2 * beta))
-        if sol <= 1:
+        if sol < 1 and sol != 0:
             return sol
         else:
             return m - (eps / (2 * beta))

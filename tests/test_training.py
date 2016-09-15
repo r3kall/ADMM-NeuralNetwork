@@ -29,11 +29,11 @@ def epoch(nn, samples, targets, tst_samples, tst_targets, train_iter=1, warm_ite
     c = 0
     for i in range(test):
         output = commons.get_max_index(res[:, i])
-        label = commons.convert_binary_to_number(tst_targets[:, i], 16)
+        label = commons.convert_binary_to_number(tst_targets[:, i], 10)
         if output == label:
             c += 1
     print("Accuracy: %s/%s" % (c, test))
-    approx = np.round(float(c)/float(test), decimals=4)
+    approx = np.round(float(c) / float(test), decimals=4)
     print("Approx: %s" % approx)
     resid = np.round(residual(nn.z[-1], nn.w[-1], nn.a[-1], nn.beta), decimals=6)
     print("Residual: %s" % str(resid))
@@ -125,40 +125,22 @@ def find_params(nn, samples, targets, tst_samples, tst_targets, eps):
     return gamma
 
 
-def test_mnist():
-    print()
-    print("=============")
-    trnset = Mnist.getTrainingSet()
-    tstset = Mnist.getTestingSet()
-    trnx = trnset['x']
-    trny = trnset['y']
-    tstx = tstset['x']
-    tsty = tstset['y']
-
-    nn = NeuralNetwork(tstx.shape[1], tstx.shape[0], tsty.shape[0], 200)
-    nn, approx = epoch(nn, tstx, tsty, tstx, tsty, train_iter=1, warm_iter=80)
-    while approx < 0.85:
-        nn, approx = epoch(nn, tstx, tsty, tstx, tsty, train_iter=1, warm_iter=60)
-
-
 def test_digits():
     print()
     print("=============")
-    dataset = datasets.load_digits(n_class=16)
+    dataset = datasets.load_digits()
     samples = dataset.data.T
-    targets = np.mat(np.zeros((16, 1797), dtype='uint8'))
+    targets = np.mat(np.zeros((10, 1797), dtype='uint8'))
     for i in range(1797):
         v = dataset.target[i]
         targets[v, i] = 1
 
-    nn = NeuralNetwork(1797, 64, 16, 100)
+    nn = NeuralNetwork(1797, 64, 10, 128, gamma=5.)
 
-
-    nn, approx = epoch(nn, samples, targets, samples, targets, train_iter=1, warm_iter=12)
+    nn, approx = epoch(nn, samples, targets, samples, targets, train_iter=1, warm_iter=8)
 
     c = 0
     while approx < 0.95:
         c += 1
-        time.sleep(1)
-        nn, approx = epoch(nn, samples, targets, samples, targets, train_iter=3, warm_iter=12)
+        nn, approx = epoch(nn, samples, targets, samples, targets, train_iter=1, warm_iter=0)
     print(c)
