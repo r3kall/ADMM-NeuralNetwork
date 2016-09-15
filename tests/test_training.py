@@ -142,5 +142,6 @@ def test_digits():
     c = 0
     while approx < 0.95:
         c += 1
+        time.sleep(1)
         nn, approx = epoch(nn, samples, targets, samples, targets, train_iter=1, warm_iter=0)
     print(c)
