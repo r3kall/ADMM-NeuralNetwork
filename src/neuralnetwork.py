@@ -92,6 +92,6 @@ class Instance(object):
     # This is a simple encapsulation of a `input signal : output signal`
     # pair in our training set.
     def __init__(self, samples, targets):
-        self.samples = np.mat(samples)
+        self.samples = np.mat(samples, dtype=np.float64)
         self.targets = np.mat(targets)
 # end class Instance

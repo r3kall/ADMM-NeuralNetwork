@@ -1,4 +1,3 @@
-import math
 import numpy as np
 from logger import defineLogger, Loggers
 
@@ -44,22 +43,10 @@ def convert_binary_to_number(t, dim):
     raise ValueError("Target not valid !!")
 
 
-def minus(x, n):
-    return np.maximum(1, x - n)
-
-
-def omega(x, low, high):
-    l = len(str(x))
-    if l > 3:
-        exp = int(min(math.pow(10, l - 3), high))
-        return int(np.log(x) * exp)
-    return low
-
-
 def get_percentage(percentage, n):
     assert 0 <= percentage <= 100
     if percentage == 0:
         return 0
     if percentage == 100:
         return n
-    return math.floor((n/100)*percentage)
+    return np.floor((n / 100) * percentage)

@@ -21,6 +21,21 @@ def generate_activations(t, s):
 # end tool
 
 
+def get_sub_instance(instance, percentage=25, shuffle=False):
+    from commons import get_percentage
+    samples = instance.samples
+    targets = instance.targets
+    if shuffle:
+        rng = np.random.get_state()
+        np.random.shuffle(samples.T)
+        np.random.set_state(rng)
+        np.random.shuffle(targets.T)
+    n = get_percentage(percentage, samples.shape[1])
+    samples = samples[:, :n]
+    targets = targets[:, :n]
+    return neuralnetwork.Instance(samples, targets)
+
+
 def save_network_to_file(net, filename="network0.pkl"):
     import pickle, os, re
     """
