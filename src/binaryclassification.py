@@ -1,6 +1,7 @@
 from copy import deepcopy
 
 import numpy as np
+import numpy.matlib
 
 import time
 
@@ -32,7 +33,7 @@ def epoch(net, trn_instance, tst_instance, train_iters=1, warm_iters=0, verbose=
         if output == label:
             c += 1
 
-    decs = 4
+    decs = 5
     approx = float(c) / float(test)
     residual = _residual(net.z[-1], net.w[-1], net.a[-1], net.beta)
 
@@ -45,7 +46,7 @@ def epoch(net, trn_instance, tst_instance, train_iters=1, warm_iters=0, verbose=
     if verbose != 0:
         print("Approx: %s" % str(np.round(approx, decimals=decs)))
         print("=============")
-    return net, approx
+    return net, approx, residual
 
 
 def _residual(z, w, a, beta):
@@ -55,64 +56,39 @@ def _residual(z, w, a, beta):
     return e
 
 
-def find_params(net, trn_instance, tst_instance, eps=1., tries=10, iters=4):
-    count = tries
-    gamma = 1.
-    beta = 1.
-    net0 = deepcopy(net)
-    net1 = deepcopy(net)
-    net0.gamma = gamma
-    net0.beta = beta
-    while count > 0:
-        nn0, approx0 = epoch(deepcopy(net0),
-                             trn_instance, tst_instance,
-                             train_iters=iters, warm_iters=iters, verbose=0)
-        net0.gamma += eps
-        nn, approx = epoch(deepcopy(net0),
-                           trn_instance, tst_instance,
-                           train_iters=iters, warm_iters=iters, verbose=0)
-        if approx0 < approx:
-            gamma = net0.gamma
-            count -= 1
+def adaptive_training(net, trn_instance, tst_instance,
+                      accuracy=0.95, eps=0.01,
+                      warm_iters=4, verbose=2):
+
+    net, approx, residual = epoch(net, trn_instance, tst_instance,
+                                  train_iters=0, warm_iters=warm_iters,
+                                  verbose=verbose)
+    while approx < accuracy:
+        if residual > eps:
+            net, approx, residual = epoch(net, trn_instance, tst_instance,
+                                          train_iters=1, warm_iters=warm_iters,
+                                          verbose=verbose)
         else:
-            break
-
-    net1.gamma = gamma
-    net1.beta = beta
-    count = 10
-    while count > 0:
-        nn0, approx0 = epoch(deepcopy(net1),
-                             trn_instance, tst_instance,
-                             train_iters=iters, warm_iters=iters, verbose=0)
-        net1.beta += eps
-        nn, approx = epoch(deepcopy(net1),
-                           trn_instance, tst_instance,
-                           train_iters=iters, warm_iters=iters, verbose=0)
-        if approx0 < approx:
-            beta = net1.beta
-            count -= 1
-        else:
-            break
-    return gamma, beta
+            net, approx, residual = epoch(net, trn_instance, tst_instance,
+                                          train_iters=1, warm_iters=0,
+                                          verbose=verbose)
+    return net
 
 
-def binary_classification(net, trn_instance, tst_instance, *layers,
-                          accuracy=0.95, warm_iters=4, verbose=2,
-                          findk=False, adaptive=False):
-
+def binary_classification(trn_instance, tst_instance, *layers,
+                          net=None, accuracy=0.95, warm_iters=4,
+                          adaptive=False, verbose=2):
     if net is None:
+        assert len(layers) > 0
         net = NeuralNetwork(trn_instance.samples.shape[1], trn_instance.samples.shape[0],
                             trn_instance.targets.shape[0], *layers)
+    if adaptive:
+        return adaptive_training(net, trn_instance, tst_instance,
+                                 accuracy=accuracy, warm_iters=warm_iters, verbose=verbose)
 
-    if findk:
-        gamma, beta = find_params(net, trn_instance, tst_instance)
-        net.gamma = gamma
-        net.beta = beta
-
-    net, approx = epoch(net, trn_instance, tst_instance,
-                        train_iters=0, warm_iters=warm_iters, verbose=verbose)
-
+    net, approx, residual = epoch(net, trn_instance, tst_instance,
+                                  train_iters=0, warm_iters=warm_iters, verbose=verbose)
     while approx < accuracy:
-        net, approx = epoch(net, trn_instance, tst_instance, verbose=verbose)
-
+        net, approx, residual = epoch(net, trn_instance, tst_instance,
+                                      train_iters=1, warm_iters=0, verbose=verbose)
     return net
