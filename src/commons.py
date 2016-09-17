@@ -26,6 +26,7 @@ def check_dimensions(a, n, m):
 
 
 def get_max_index(a):
+    # Get the index with maximum value
     mx = a[0]
     index = 0
     for i in range(len(a)):

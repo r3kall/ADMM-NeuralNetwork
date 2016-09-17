@@ -1,6 +1,5 @@
 import numpy as np
 
-from functions import relu
 from algorithms.admm import weight_update, activation_update, argminz, lambda_update
 from neuraltools import generate_weights, generate_outputs, generate_activations
 
@@ -14,7 +13,7 @@ __author__ = "Lorenzo Rutigliano, lnz.rutigliano@gmail.com"
 class NeuralNetwork(object):
     # Neural Network Model
     def __init__(self, training_space, features, classes, *layers,
-                 beta=1., gamma=10., loss='binary'):
+                 beta=1., gamma=10., code='binary'):
 
         assert len(layers) > 0 and features > 0 and classes > 0 and training_space > 0
         self.parameters = (training_space, features, classes, layers)
@@ -23,22 +22,13 @@ class NeuralNetwork(object):
         self.beta = beta
         self.gamma = gamma
 
-        self.argminlastz, self.error = self._setalg(loss)
-        self.activation_function = relu
+        self.argminlastz, self.activation_function, self.error = setalg(code)
 
         t = (features,) + layers + (classes,)
         self.w = generate_weights(t)
         self.z = generate_outputs(t, training_space)
         self.a = generate_activations(t, training_space)
         self.l = np.mat(np.zeros((classes, training_space), dtype='float64'))
-    # end
-
-    def _setalg(self, loss):
-        if loss == 'binary':
-            from algorithms.hingebinary import argminlastz, bhe
-            return argminlastz, bhe
-        else:
-            return None, None
     # end
 
     def train(self, training_data, training_targets):
@@ -88,10 +78,23 @@ class NeuralNetwork(object):
 # end class NeuralNetwork
 
 
+def setalg(code):
+    if code == 'binary':
+        from algorithms.hingebinary import argminlastz
+        from functions import relu, mbhe
+        return argminlastz, relu, mbhe
+    else:
+        return None, None
+# end
+
+
 class Instance(object):
     # This is a simple encapsulation of a `input signal : output signal`
     # pair in our training set.
     def __init__(self, samples, targets, intype=np.float64, outtype=np.uint8):
+        from commons import check_consistency
         self.samples = np.mat(samples, dtype=intype)
         self.targets = np.mat(targets, dtype=outtype)
+        check_consistency(self.samples)
+        check_consistency(self.targets)
 # end class Instance
