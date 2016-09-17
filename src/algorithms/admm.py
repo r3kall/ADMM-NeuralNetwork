@@ -29,9 +29,9 @@ def weight_update(layer_output, activation_input):
     a least square problem, and the solution is given by W_l = z_l p_l-1, where p_l-1
     represents the pseudo-inverse of the rectangular activation matrix a_l-1.
 
-    :param layer_output:        output matrix z_l
-    :param activation_input:    activation matrix a_l-1
-    :return:    weight matrix W_l
+    :param layer_output:        output matrix
+    :param activation_input:    activation matrix l-1
+    :return:                    weight matrix
     """
     ps = np.linalg.pinv(activation_input)
     return np.dot(layer_output, ps)
@@ -58,10 +58,10 @@ def activation_update(next_weight, next_layer_output, layer_nl_output, beta, gam
 
         beta ||z_l+1 - W_l+1 a_l||^2 + gamma ||a_l - h(z_l)||^2
 
-    :param next_weight:         weight matrix W_l+1
-    :param next_layer_output:   output matrix z_l+1
-    :param layer_nl_output:     activate output matrix h(z_l)
-    :return:    activation matrix a_l
+    :param next_weight:         weight matrix l+1
+    :param next_layer_output:   output matrix l+1
+    :param layer_nl_output:     activate output matrix h(z)
+    :return:                    activation matrix
     """
     m1 = _activation_inverse(next_weight, beta, gamma)
     m2 = _activation_formulate(next_weight, next_layer_output,
@@ -78,18 +78,27 @@ def argminz(a, w, a_in, gamma, beta):
     be solved in closed form; common piecewise linear choices for h include rectified
     linear units (ReLUs), that its used here, and non-differentiable sigmoid functions.
 
-    :param a:   activation matrix a_l
-    :param w:   weight matrix W_l
-    :param a_in:activation matrix a_l-1
-    :return: output matrix z_l
+    :param a:    activation matrix
+    :param w:    weight matrix
+    :param a_in: activation matrix l-1
+    :return:     output matrix
     """
     m = np.dot(w, a_in)
+    # cython version
     z = argminc(a, m, gamma, beta)
     return z
 # end
 
 
 def lambda_update(zl, w, a_in, beta):
+    """
+    Lagrange multiplier update.
+
+    :param zl:      output matrix last layer
+    :param w:       weight matrix last layer
+    :param a_in:    activation matrix l-1
+    :return:        lagrange update
+    """
     mpt = np.dot(w, a_in)
     return beta * (zl - mpt)
 # end

@@ -91,7 +91,7 @@ class NeuralNetwork(object):
 class Instance(object):
     # This is a simple encapsulation of a `input signal : output signal`
     # pair in our training set.
-    def __init__(self, samples, targets):
-        self.samples = np.mat(samples, dtype=np.float64)
-        self.targets = np.mat(targets)
+    def __init__(self, samples, targets, intype=np.float64, outtype=np.uint8):
+        self.samples = np.mat(samples, dtype=intype)
+        self.targets = np.mat(targets, dtype=outtype)
 # end class Instance

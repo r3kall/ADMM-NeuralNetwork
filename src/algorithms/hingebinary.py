@@ -14,7 +14,17 @@ def bhe(z, y):
 
 
 def argminlastz(targets, eps, w, a_in, beta):
+    """
+    Minimization of the last output matrix, using the above function.
+
+    :param targets:  target matrix (equal dimensions of z)
+    :param eps:      lagrange multiplier matrix (equal dimensions of z)
+    :param w:        weight matrix
+    :param a_in:     activation matrix l-1
+    :return:         output matrix last layer
+    """
     m = np.dot(w, a_in)
+    # cython version
     z = binarymin(targets, eps, m, beta)
     return z
 # end
