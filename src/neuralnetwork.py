@@ -1,7 +1,7 @@
 import numpy as np
 
-from algorithms.admm import weight_update, activation_update, argminz, lambda_update
-from neuraltools import generate_weights, generate_outputs, generate_activations
+from src.algorithms.admm import weight_update, activation_update, argminz, lambda_update
+from src.neuraltools import generate_weights, generate_outputs, generate_activations
 
 from logger import defineLogger, Loggers, Levels
 log = defineLogger(Loggers.STANDARD)
@@ -80,8 +80,8 @@ class NeuralNetwork(object):
 
 def setalg(code):
     if code == 'binary':
-        from algorithms.hingebinary import argminlastz
-        from functions import relu, mbhe
+        from src.algorithms.hingebinary import argminlastz
+        from src.functions import relu, mbhe
         return argminlastz, relu, mbhe
     else:
         return None, None
@@ -92,7 +92,7 @@ class Instance(object):
     # This is a simple encapsulation of a `input signal : output signal`
     # pair in our training set.
     def __init__(self, samples, targets, intype=np.float64, outtype=np.uint8):
-        from commons import check_consistency
+        from src.commons import check_consistency
         self.samples = np.mat(samples, dtype=intype)
         self.targets = np.mat(targets, dtype=outtype)
         check_consistency(self.samples)

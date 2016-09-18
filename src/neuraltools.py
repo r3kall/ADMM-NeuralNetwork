@@ -1,7 +1,7 @@
 import numpy as np
 import numpy.matlib
 
-import neuralnetwork
+import src.neuralnetwork
 
 __author__ = 'Lorenzo Rutigliano, lnz.rutigliano@gmail.com'
 
@@ -34,6 +34,24 @@ def get_sub_instance(instance, percentage=25, shuffle=False):
     samples = samples[:, :n]
     targets = targets[:, :n]
     return neuralnetwork.Instance(samples, targets)
+
+
+def split_instance(instance, percentage=25, shuffle=False):
+    assert 0 < percentage < 100
+    from commons import get_percentage
+    samples = instance.samples
+    targets = instance.targets
+    if shuffle:
+        rng = np.random.get_state()
+        np.random.shuffle(samples.T)
+        np.random.set_state(rng)
+        np.random.shuffle(targets.T)
+    n = get_percentage(percentage, samples.shape[1])
+    s1 = samples[:, :n]
+    t1 = targets[:, :n]
+    s2 = samples[:, n + 1:]
+    t2 = targets[:, n + 1:]
+    return neuralnetwork.Instance(s2, t2), neuralnetwork.Instance(s1, t1)
 
 
 def save_network_to_file(net, filename="network0.pkl"):

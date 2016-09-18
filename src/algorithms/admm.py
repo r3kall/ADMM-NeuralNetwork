@@ -1,6 +1,6 @@
 import numpy as np
 
-from cyth.argminc import argminc
+from src.cyth.argminc import argminc
 
 __author__ = "Lorenzo Rutigliano, lnz.rutigliano@gmail.com"
 
