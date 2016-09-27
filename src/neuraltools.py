@@ -33,7 +33,7 @@ def get_sub_instance(instance, percentage=25, shuffle=False):
     n = get_percentage(percentage, samples.shape[1])
     samples = samples[:, :n]
     targets = targets[:, :n]
-    return neuralnetwork.Instance(samples, targets)
+    return src.neuralnetwork.Instance(samples, targets)
 
 
 def split_instance(instance, percentage=25, shuffle=False):
@@ -51,7 +51,7 @@ def split_instance(instance, percentage=25, shuffle=False):
     t1 = targets[:, :n]
     s2 = samples[:, n + 1:]
     t2 = targets[:, n + 1:]
-    return neuralnetwork.Instance(s2, t2), neuralnetwork.Instance(s1, t1)
+    return src.neuralnetwork.Instance(s2, t2), src.neuralnetwork.Instance(s1, t1)
 
 
 def save_network_to_file(net, filename="network0.pkl"):
@@ -104,8 +104,8 @@ def load_network_from_file(filename):
         outputs         = store_dict["outputs"]
         activations     = store_dict["activations"]
 
-    net = neuralnetwork.NeuralNetwork(training_space, features, classes,
-                                      *layers, beta=beta, gamma=gamma)
+    net = src.neuralnetwork.NeuralNetwork(training_space, features, classes,
+                                          *layers, beta=beta, gamma=gamma)
     net.w = weights
     net.z = outputs
     net.a = activations

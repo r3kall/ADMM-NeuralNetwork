@@ -18,7 +18,7 @@ cdef minimize(DTYPE_t a, DTYPE_t m, double alpha, double beta):
         if a <= 0:
             return m
         res1 = (alpha * ((a - (np.maximum(0, sol))) ** 2)) + (beta * ((sol - m) ** 2))
-        res2 = (alpha * ((a - (np.maximum(0, m))) ** 2))
+        res2 = alpha * (a ** 2)
         if res1 <= res2:
             return sol
         return m
