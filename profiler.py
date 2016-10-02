@@ -5,128 +5,10 @@ from sklearn import datasets
 from sklearn.cross_validation import train_test_split
 
 from src.neuralnetwork import Instance, NeuralNetwork
-from src.neuraltools import get_sub_instance
 from src.binaryclassification import epoch
 
 
 __author__ = 'Lorenzo Rutigliano, lnz.rutigliano@gmail.com'
-
-
-def digits_load(classes, perc=75, sf=True):
-    dataset = datasets.load_digits(n_class=classes)
-    dim = dataset.target.shape[1]
-    targets = np.zeros((classes, dim), dtype='uint8')
-
-    for w in range(dim):
-        v = dataset.target[w]
-        targets[v, w] = 1
-
-    trn = Instance(dataset.data.T, targets)
-    tst = get_sub_instance(trn, percentage=perc, shuffle=sf)
-    return trn, tst
-
-
-def digits_measure(classes, accuracy, ws, m=10, k=20):
-    assert 1 < classes <= 10
-    assert 0. < accuracy <= 1.
-    trn, tst = digits_load(classes)
-
-    rundict = {
-        'runc' : [0 for p in range(k)],
-        'runover' : 0,
-        'timec' : 0.
-    }
-
-    indim = trn.samples.shape[0]
-    outdim = trn.targets.shape[0]
-    vspace = trn.samples.shape[1]
-
-    for it in range(m):
-        net = NeuralNetwork(vspace, indim, outdim, 75, gamma=10., beta=1.)
-        flag = False
-        ttmp = 0.
-        for w in range(k):
-            if flag is False:
-                st = time.time()
-                net, acc, resid = epoch(net, trn, trn, train_iters=1, warm_iters=ws, verbose=0)
-                endt = time.time() - st
-                flag = True
-            else:
-                st = time.time()
-                net, acc, resid = epoch(net, trn, trn, train_iters=1, warm_iters=0, verbose=0)
-                endt = time.time() - st
-            ttmp += endt
-            if acc >= accuracy:
-                rundict['runc'][w] += 1
-                rundict['timec'] += ttmp
-                break
-            if w == k - 1:
-                rundict['runover'] += 1
-                print("ACC: %s" % str(acc))
-
-    overs = rundict['runover'] / m
-    runs = [x / (m) for x in rundict['runc']]
-    if m > rundict['runover']:
-        times = rundict['timec'] / (m - rundict['runover'])
-    else:
-        times = 0
-    print(runs)
-    print(overs)
-    return runs, overs, times
-
-
-def iris_load():
-    iris = datasets.load_iris()
-    targets = np.zeros((3, 150), dtype='float64')
-    for e in range(150):
-        v = iris.target[e]
-        targets[v, e] = 1
-    ist = Instance(iris.data.T, targets)
-    return ist
-
-
-def iris_measure(accuracy, ws, m=10, k=30):
-    assert 0. < accuracy <= 1.
-    ist = iris_load()
-
-    rundict = {
-        'runc' : [0 for p in range(k)],
-        'runover' : 0,
-        'timec' : 0.
-    }
-
-    for it in range(m):
-        net = NeuralNetwork(150, 4, 3, 72, gamma=10., beta=1.)
-        flag = False
-        ttmp = 0.
-        for w in range(k):
-            if flag is False:
-                st = time.time()
-                net, acc, resid = epoch(net, ist, ist, train_iters=1, warm_iters=ws, verbose=0)
-                endt = time.time() - st
-                flag = True
-            else:
-                st = time.time()
-                net, acc, resid = epoch(net, ist, ist, train_iters=1, warm_iters=0, verbose=0)
-                endt = time.time() - st
-            ttmp += endt
-            if acc >= accuracy:
-                rundict['runc'][w] += 1
-                rundict['timec'] += ttmp
-                break
-            if w == k - 1:
-                rundict['runover'] += 1
-                print("ACC: %s" % str(acc))
-
-    overs = rundict['runover'] / m
-    runs = [x / (m) for x in rundict['runc']]
-    if m > rundict['runover']:
-        times = rundict['timec'] / (m - rundict['runover'])
-    else:
-        times = 0
-    print(runs)
-    print(overs)
-    return runs, overs, times
 
 
 def plotout(pairs):
@@ -142,37 +24,20 @@ def plotout(pairs):
     plt.show()
 
 
-def maind():
-    import operator
-    p = []
-    a = [0.945, 0.95]
-    for i in a:
-        runs, over, times = digits_measure(10, i, 10)
-        if times == 0:
-            continue
-        else:
-            times += ((i * 10) * over)
-        print(times)
-        p.append({'x': times, 'y': i})
-    newlist = sorted(p, key=operator.itemgetter('x'))
-    #plotout(newlist)
-
-
 def get_data():
-    X, y = datasets.make_classification(n_samples=10000, n_features=32,
-                                        n_informative=2, n_redundant=16,
-                                        n_repeated=8, random_state=42)
+    rng = 1
+    X, y = datasets.make_classification(n_samples=20000, n_features=64,
+                                        n_informative=2, n_redundant=42,
+                                        n_repeated=20, random_state=rng)
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5,
-                                                        random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(X, y,
+                                                        test_size=0.5,
+                                                        random_state=rng)
 
     trg_train = np.zeros((2, len(y_train)), dtype='uint8')
     for e in range(trg_train.shape[1]):
         v = y_train[e]
         trg_train[v, e] = 1
-
-    # print(y_train[0])
-    # print(trg_train[:, 0])
 
     trg_test = np.zeros((2, len(y_test)), dtype='uint8')
     for e in range(trg_test.shape[1]):
@@ -184,7 +49,34 @@ def get_data():
     return trn, tst
 
 
-def classification_measure(accuracy, ws, m=10, k=50):
+def rnd_train(net, trn_instance, train_iters=1, warm_iters=0):
+    st = time.time()
+    for i in range(warm_iters):
+        # Training without Lagrange multiplier update
+        net.warmstart(trn_instance.samples, trn_instance.targets)
+    for i in range(train_iters):
+        # Standard Training
+        net.train(trn_instance.samples, trn_instance.targets)
+    endt = np.round((time.time() - st), decimals=2)
+    return net, endt
+
+from src.commons import get_max_index, convert_binary_to_number
+def rnd_test(net, tst_instance):
+    # Accuracy over validation data
+    res = net.feedforward(tst_instance.samples)
+    test = res.shape[1]
+    c = 0
+    for i in range(test):
+        output = get_max_index(res[:, i])
+        label = convert_binary_to_number(tst_instance.targets[:, i],
+                                         tst_instance.targets.shape[0])
+        if output == label:
+            c += 1
+    approx = float(c) / float(test)
+    return np.round(approx, decimals=5)
+
+
+def rnd_measure(accuracy, ws, m=10, k=30):
     trn, tst = get_data()
 
     rundict = {
@@ -193,34 +85,50 @@ def classification_measure(accuracy, ws, m=10, k=50):
         'timec': 0.
     }
 
+    def residual(z, w, a, beta):
+        lr = beta * (z - (np.dot(w, a)))
+        e = np.mean(
+            [lr[k, w] for k in range(z.shape[0]) for w in range(z.shape[1])],
+            dtype=np.float64)
+        return e
+
     for it in range(m):
         net = NeuralNetwork(trn.samples.shape[1],
                             trn.samples.shape[0],
                             trn.targets.shape[0],
-                            128, gamma=10., beta=1.)
+                            64, 32, gamma=10., beta=1.)
+
         flag = False
         ttmp = 0.
-        print("Start training")
-        for w in range(k):
+        print("============ " + str(it + 1))
+
+        for innit in range(k):
             if flag is False:
-                st = time.time()
-                net, acc, resid = epoch(net, trn, tst, train_iters=1, warm_iters=ws, verbose=1)
-                endt = time.time() - st
+                net, t = rnd_train(net, trn, train_iters=0, warm_iters=ws)
+                acc = rnd_test(net, tst)
+                # resid = residual(net.z[-1], net.w[-1], net.a[-1], net.beta)
                 flag = True
+                ttmp += t
+
+            if acc < accuracy:
+                net, t = rnd_train(net, trn, train_iters=1, warm_iters=0)
+                acc = rnd_test(net, tst)
+                resid = residual(net.z[-1], net.w[-1], net.a[-1], net.beta)
+                ttmp += t
             else:
-                st = time.time()
-                net, acc, resid = epoch(net, trn, tst, train_iters=1, warm_iters=0, verbose=0)
-                endt = time.time() - st
-            ttmp += endt
-            if acc >= accuracy:
-                rundict['runc'][w] += 1
+                rundict['runc'][innit] += 1
                 rundict['timec'] += ttmp
                 break
-            if w == k - 1:
+
+            if innit == k - 1:
                 rundict['runover'] += 1
-                print("ACC: %s" % str(acc))
+                print("Reached Accuracy: %s" % str(acc))
+            elif innit % 5 == 0:
+                print("Accuracy at %s: %s" % (str(innit), str(acc)))
+                # print("Residual: %s" % str(resid))
+
     overs = rundict['runover'] / m
-    runs = [x/m for x in rundict['runc']]
+    runs = [x / m for x in rundict['runc']]
     if m > rundict['runover']:
         times = rundict['timec'] / (m - rundict['runover'])
     else:
@@ -235,12 +143,12 @@ def main_classification():
     p = []
     a = [0.93, 0.94]
     for i in a:
-        runs, over, times = classification_measure(i, 20, k=30)
+        runs, over, times = rnd_measure(i, 8)
         if times == 0:
             continue
         else:
             times += ((i * 10) * over)
-        print(times)
+        # print(times)
         p.append({'x': times, 'y': i})
     newlist = sorted(p, key=operator.itemgetter('x'))
     # plotout(newlist)
