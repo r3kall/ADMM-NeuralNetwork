@@ -26,10 +26,10 @@ def plotout(pairs):
 
 
 def get_data():
-    rng = 1
-    X, y = datasets.make_classification(n_samples=20000, n_features=64,
-                                        n_informative=2, n_redundant=30,
-                                        n_repeated=20, random_state=rng)
+    rng = 3
+    X, y = datasets.make_classification(n_samples=20000, n_features=32,
+                                        n_informative=2, n_redundant=10,
+                                        n_repeated=8, random_state=rng)
 
     X_train, X_test, y_train, y_test = train_test_split(X, y,
                                                         test_size=0.5,
@@ -97,11 +97,12 @@ def rnd_measure(accuracy, ws, m=10, k=30):
         net = NeuralNetwork(trn.samples.shape[1],
                             trn.samples.shape[0],
                             trn.targets.shape[0],
-                            64, gamma=10., beta=1.)
+                            32, gamma=10., beta=1.)
 
         flag = False
         ttmp = 0.
         g = np.random.randint(1000)
+        mean = 0.
         print("============ " + str(it + 1))
 
         for innit in range(k):
@@ -112,15 +113,21 @@ def rnd_measure(accuracy, ws, m=10, k=30):
                 # print("Residual: %s" % str(resid))
                 flag = True
                 ttmp += t
-            check = deepcopy(net.l)
+            mean = mean_lambda(net.l)
             if acc < accuracy:
                 net, t = rnd_train(net, trn, train_iters=1, warm_iters=0)
                 acc = rnd_test(net, tst)
-                resid = residual(net.z[-1], net.w[-1], net.a[-1], net.beta)
+                # resid = residual(net.z[-1], net.w[-1], net.a[-1], net.beta)
                 ttmp += t
             else:
                 rundict['runc'][innit] += 1
                 rundict['timec'] += ttmp
+                break
+
+            if mean_lambda(net.l) - mean < 0.0005:
+                print(mean_lambda(net.l))
+                print(mean)
+                print(acc)
                 break
 
             if innit == k - 1:
@@ -128,10 +135,13 @@ def rnd_measure(accuracy, ws, m=10, k=30):
                 print("Reached Accuracy: %s" % str(acc))
             elif innit % 5 == 0:
                 print("Accuracy at %s: %s" % (str(innit), str(acc)))
-                check_lambda(net.l, check)
-                for h in range(50):
-                    print(net.l[0, h+g], end=' ')
-                print("\nResidual: %s" % str(resid))
+                #for h in range(30):
+                #    print(net.l[0, h+g], end=' ')
+                print()
+                e = mean_lambda(net.l)
+                #cn = comp_lambda_target(net.l, trn.targets)
+                print("Lambda mean: %s" % str(e))
+                #print("Lambda-targets divergence: %s" % str(cn))
                 print("------------------")
 
     overs = rundict['runover'] / m
@@ -145,14 +155,22 @@ def rnd_measure(accuracy, ws, m=10, k=30):
     return runs, overs, times
 
 
-def check_lambda(l, l0):
+def mean_lambda(l):
+    e = np.mean(
+        [np.abs(l[k, w]) for k in range(l.shape[0]) for w in range(l.shape[1])],
+        dtype=np.float64)
+    return e
+
+
+def comp_lambda_target(l, y):
     counter = 0
     for i in range(l.shape[0]):
         for j in range(l.shape[1]):
-            if (np.abs(l[i, j]) - np.abs(l0[i, j])) < 0:
-                # print("Change at [%s, %s] from %s to %s" % (str(i), str(j), str(l0[i, j]), str(l[i, j])))
+            if y[i, j] == 0 and l[i, j] >= 0.:
                 counter += 1
-    print(counter)
+            elif y[i, j] == 1 and l[i, j] <= 0.:
+                counter += 1
+    return counter
 
 
 def main_classification():
@@ -160,7 +178,7 @@ def main_classification():
     p = []
     a = [0.93, 0.94]
     for i in a:
-        runs, over, times = rnd_measure(i, 8, k=1000)
+        runs, over, times = rnd_measure(i, 5, k=100)
         if times == 0:
             continue
         else:

@@ -2,7 +2,7 @@
 import numpy as np
 
 from sklearn import datasets
-from neuralnetwork import NeuralNetwork, Instance
+from src.neuralnetwork import NeuralNetwork, Instance
 from binaryclassification import binary_classification
 
 
@@ -42,9 +42,9 @@ def test_iris():
     print("=============")
     from sklearn.datasets import make_moons, make_classification
     from neuraltools import split_instance
-    k = 300
-    # X, y = make_moons(n_samples=k, noise=0.1, shuffle=False)
-    X, y = make_classification(n_samples=k, scale=10.)
+    k = 100
+    X, y = make_moons(n_samples=k, noise=0.1, shuffle=False)
+    # X, y = make_classification(n_samples=k, scale=10.)
 
     targets = np.mat(np.zeros((2, k), dtype='uint8'))
 
