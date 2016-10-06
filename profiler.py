@@ -26,21 +26,22 @@ def plotout(pairs):
 
 
 def get_data():
-    rng = 3
-    X, y = datasets.make_classification(n_samples=20000, n_features=32,
-                                        n_informative=2, n_redundant=10,
-                                        n_repeated=8, random_state=rng)
+    rng = 4
+    cl = 2
+    X, y = datasets.make_classification(n_samples=30000, n_features=128,
+                                        n_informative=2, n_redundant=64,
+                                        n_repeated=16, random_state=rng)
 
     X_train, X_test, y_train, y_test = train_test_split(X, y,
                                                         test_size=0.5,
                                                         random_state=rng)
 
-    trg_train = np.zeros((2, len(y_train)), dtype='uint8')
+    trg_train = np.zeros((cl, len(y_train)), dtype='uint8')
     for e in range(trg_train.shape[1]):
         v = y_train[e]
         trg_train[v, e] = 1
 
-    trg_test = np.zeros((2, len(y_test)), dtype='uint8')
+    trg_test = np.zeros((cl, len(y_test)), dtype='uint8')
     for e in range(trg_test.shape[1]):
         v = y_test[e]
         trg_test[v, e] = 1
@@ -48,6 +49,39 @@ def get_data():
     trn = Instance(X_train.T, trg_train)
     tst = Instance(X_test.T, trg_test)
     return trn, tst
+
+
+def get_iris():
+    iris = datasets.load_iris()
+    X = iris.data
+    y = iris.target
+
+    X = rep(X, 8)
+    y = rep(y, 8)
+
+    rng = 42
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=rng)
+
+    trg_train = np.zeros((3, len(y_train)), dtype='uint8')
+    for e in range(trg_train.shape[1]):
+        v = y_train[e]
+        trg_train[v, e] = 1
+
+    trg_test = np.zeros((3, len(y_test)), dtype='uint8')
+    for e in range(trg_test.shape[1]):
+        v = y_test[e]
+        trg_test[v, e] = 1
+
+    trn = Instance(X_train.T, trg_train)
+    tst = Instance(X_test.T, trg_test)
+    return trn, tst
+
+
+def rep(matrix, times):
+    assert times > 0
+    for i in range(times):
+        matrix = np.r_[matrix, matrix]
+    return matrix
 
 
 def rnd_train(net, trn_instance, train_iters=1, warm_iters=0):
@@ -97,7 +131,7 @@ def rnd_measure(accuracy, ws, m=10, k=30):
         net = NeuralNetwork(trn.samples.shape[1],
                             trn.samples.shape[0],
                             trn.targets.shape[0],
-                            32, gamma=10., beta=1.)
+                            96, gamma=10., beta=1.)
 
         flag = False
         ttmp = 0.
@@ -113,7 +147,7 @@ def rnd_measure(accuracy, ws, m=10, k=30):
                 # print("Residual: %s" % str(resid))
                 flag = True
                 ttmp += t
-            mean = mean_lambda(net.l)
+            # mean = mean_lambda(net.l)
             if acc < accuracy:
                 net, t = rnd_train(net, trn, train_iters=1, warm_iters=0)
                 acc = rnd_test(net, tst)
@@ -123,13 +157,13 @@ def rnd_measure(accuracy, ws, m=10, k=30):
                 rundict['runc'][innit] += 1
                 rundict['timec'] += ttmp
                 break
-
-            if mean_lambda(net.l) - mean < 0.0005:
+            """
+            if mean_lambda(net.l) - mean < 0.000000001:
                 print(mean_lambda(net.l))
                 print(mean)
                 print(acc)
                 break
-
+            """
             if innit == k - 1:
                 rundict['runover'] += 1
                 print("Reached Accuracy: %s" % str(acc))
@@ -173,12 +207,77 @@ def comp_lambda_target(l, y):
     return counter
 
 
+def iris_measure(accuracy, ws, m=10, k=30):
+    trn, tst = get_iris()
+
+    print(trn.samples.shape)
+    print(trn.targets.shape)
+    print(tst.samples.shape)
+    print(tst.targets.shape)
+
+    rundict = {
+        'runc': [0 for p in range(k)],
+        'runover': 0,
+        'timec': 0.
+    }
+
+    for it in range(m):
+        net = NeuralNetwork(trn.samples.shape[1],
+                            trn.samples.shape[0],
+                            trn.targets.shape[0],
+                            64, gamma=10., beta=1.)
+
+        flag = False
+        ttmp = 0.
+        print("============ " + str(it + 1))
+
+        for innit in range(k):
+            if flag is False:
+                net, t = rnd_train(net, trn, train_iters=0, warm_iters=ws)
+                acc = rnd_test(net, tst)
+                flag = True
+                ttmp += t
+            mean = mean_lambda(net.l)
+            if acc < accuracy:
+                net, t = rnd_train(net, trn, train_iters=1, warm_iters=0)
+                acc = rnd_test(net, tst)
+                ttmp += t
+            else:
+                rundict['runc'][innit] += 1
+                rundict['timec'] += ttmp
+                break
+            """
+            if mean_lambda(net.l) - mean < 0.000000001:
+                print(mean_lambda(net.l))
+                print(mean)
+                print(acc)
+                break
+            """
+            if innit == k - 1:
+                rundict['runover'] += 1
+                print("Reached Accuracy: %s" % str(acc))
+                e = mean_lambda(net.l)
+                print("Lambda mean: %s" % str(e))
+            # elif innit % 5 == 0:
+                # print("Accuracy at %s: %s" % (str(innit), str(acc)))
+
+    overs = rundict['runover'] / m
+    runs = [x / m for x in rundict['runc']]
+    if m > rundict['runover']:
+        times = rundict['timec'] / (m - rundict['runover'])
+    else:
+        times = 0
+    print(runs)
+    print(overs)
+    return runs, overs, times
+
+
 def main_classification():
     import operator
     p = []
-    a = [0.93, 0.94]
+    a = [0.80, 0.85]
     for i in a:
-        runs, over, times = rnd_measure(i, 5, k=100)
+        runs, over, times = iris_measure(i, 6, k=100)
         if times == 0:
             continue
         else:
