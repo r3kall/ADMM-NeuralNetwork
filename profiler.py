@@ -1,5 +1,3 @@
-from copy import deepcopy
-
 import numpy as np
 import time
 
@@ -7,9 +5,37 @@ from sklearn import datasets
 from sklearn.cross_validation import train_test_split
 
 from src.neuralnetwork import Instance, NeuralNetwork
+from src.commons import get_max_index, convert_binary_to_number
 
 
 __author__ = 'Lorenzo Rutigliano, lnz.rutigliano@gmail.com'
+
+
+def rnd_train(net, trn_instance, train_iters=1, warm_iters=0):
+    st = time.time()
+    for i in range(warm_iters):
+        # Training without Lagrange multiplier update
+        net.warmstart(trn_instance.samples, trn_instance.targets)
+    for i in range(train_iters):
+        # Standard Training
+        net.train(trn_instance.samples, trn_instance.targets)
+    endt = np.round((time.time() - st), decimals=6)
+    return net, endt
+
+
+def rnd_test(net, tst_instance):
+    # Accuracy over validation data
+    res = net.feedforward(tst_instance.samples)
+    test = res.shape[1]
+    c = 0
+    for i in range(test):
+        output = get_max_index(res[:, i])
+        label = convert_binary_to_number(tst_instance.targets[:, i],
+                                         tst_instance.targets.shape[0])
+        if output == label:
+            c += 1
+    approx = float(c) / float(test)
+    return np.round(approx, decimals=6)
 
 
 def plotout(pairs):
@@ -24,16 +50,19 @@ def plotout(pairs):
     plt.xlim(min(x), max(x))
     plt.show()
 
-
-def get_data():
-    rng = 4
+from sklearn.preprocessing import normalize
+def get_random_data(rng=42):
     cl = 2
-    X, y = datasets.make_classification(n_samples=30000, n_features=128,
-                                        n_informative=2, n_redundant=64,
-                                        n_repeated=16, random_state=rng)
+    X, y = datasets.make_classification(n_samples=10000, n_features=64,
+                                        n_informative=2, n_redundant=22,
+                                        n_repeated=4, random_state=rng)
+    print(X[0, :])
+    # X = rnd_normalisation(X)
+    X = normalize(X, norm='l2', copy=False)
+    print(X[0, :])
 
     X_train, X_test, y_train, y_test = train_test_split(X, y,
-                                                        test_size=0.5,
+                                                        test_size=0.75,
                                                         random_state=rng)
 
     trg_train = np.zeros((cl, len(y_train)), dtype='uint8')
@@ -51,10 +80,94 @@ def get_data():
     return trn, tst
 
 
+def rnd_normalisation(x):
+    # x has shape (N, 64)
+    for i in range(x.shape[0]):
+        dem = np.sum(np.exp(x[i, :]))
+        for j in range(x.shape[1]):
+            x[i, j] = np.exp(x[i, j]) / dem
+    return x
+
+
+def rnd_measure(trn, tst, ws, m=3, k=30):
+    res = []
+
+    class rundict():
+        def __init__(self, accuracylabel, timelabel, runsnumber):
+            self.accuracy = accuracylabel
+            self.time = timelabel
+            self.run = runsnumber
+
+    for it in range(m):
+        net = NeuralNetwork(trn.samples.shape[1],
+                            trn.samples.shape[0],
+                            trn.targets.shape[0],
+                            129, gamma=10., beta=1.)
+
+        flag = False
+        ttmp = 0.
+        ctrl = 0
+        tacc = -1.
+        print("============ " + str(it + 1))
+
+        for innit in range(k):
+            if flag is False:
+                net, t = rnd_train(net, trn, train_iters=0, warm_iters=ws)
+                acc = rnd_test(net, tst)
+                flag = True
+                ttmp += t
+
+            if acc < 0.99:
+                net, t = rnd_train(net, trn, train_iters=1, warm_iters=0)
+                acc = rnd_test(net, tst)
+                print("acc: %f" % acc)
+                if tacc >= acc:
+                    ctrl += 1
+                else:
+                    tacc = acc
+                    ttim = ttmp + t
+                    tk = innit
+                    ctrl = 0
+                if ctrl >= 5:
+                    print("max acc: %f" % tacc)
+                    print("max time: %f" % ttim)
+                    print("max k: %d" % (tk + 1))
+                    res.append(rundict(tacc, ttim, tk + 1))
+                    break
+                ttmp += t
+            else:
+                res.append(rundict(acc, ttmp, innit + 1))
+                break
+
+            if innit == k - 1:
+                res.append(rundict(acc, ttmp, innit + 1))
+    return res
+
+
+def main_classification():
+    # import operator
+
+    trn, tst = get_random_data()
+    res = rnd_measure(trn, tst, 8)
+    for e in res:
+        print(e.accuracy)
+
+    # p.append({'x': times, 'y': i})
+    # newlist = sorted(p, key=operator.itemgetter('x'))
+    # plotout(newlist)
+
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+#                                 IRIS Dataset                                           #
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
+
 def get_iris(rng=42, tst_size=0.3):
     iris = datasets.load_iris()
     X = iris.data
     y = iris.target
+
+    X = sigmoid_normalisation(X)
 
     X_train, X_test, y_train, y_test = train_test_split(X, y,
                                                         test_size=tst_size,
@@ -75,131 +188,11 @@ def get_iris(rng=42, tst_size=0.3):
     return trn, tst
 
 
-def column_normalisation(x):
-    pass
-
-
-def rnd_train(net, trn_instance, train_iters=1, warm_iters=0):
-    st = time.time()
-    for i in range(warm_iters):
-        # Training without Lagrange multiplier update
-        net.warmstart(trn_instance.samples, trn_instance.targets)
-    for i in range(train_iters):
-        # Standard Training
-        net.train(trn_instance.samples, trn_instance.targets)
-    endt = np.round((time.time() - st), decimals=6)
-    return net, endt
-
-from src.commons import get_max_index, convert_binary_to_number
-def rnd_test(net, tst_instance):
-    # Accuracy over validation data
-    res = net.feedforward(tst_instance.samples)
-    test = res.shape[1]
-    c = 0
-    for i in range(test):
-        output = get_max_index(res[:, i])
-        label = convert_binary_to_number(tst_instance.targets[:, i],
-                                         tst_instance.targets.shape[0])
-        if output == label:
-            c += 1
-    approx = float(c) / float(test)
-    return np.round(approx, decimals=6)
-
-
-def rnd_measure(accuracy, ws, m=10, k=30):
-    trn, tst = get_data()
-
-    rundict = {
-        'runc': [0 for p in range(k)],
-        'runover': 0,
-        'timec': 0.
-    }
-
-    def residual(z, w, a, beta):
-        lr = beta * (z - (np.dot(w, a)))
-        e = np.mean(
-            [lr[k, w] for k in range(z.shape[0]) for w in range(z.shape[1])],
-            dtype=np.float64)
-        return e
-
-    for it in range(m):
-        net = NeuralNetwork(trn.samples.shape[1],
-                            trn.samples.shape[0],
-                            trn.targets.shape[0],
-                            96, gamma=10., beta=1.)
-
-        flag = False
-        ttmp = 0.
-        g = np.random.randint(1000)
-        mean = 0.
-        print("============ " + str(it + 1))
-
-        for innit in range(k):
-            if flag is False:
-                net, t = rnd_train(net, trn, train_iters=0, warm_iters=ws)
-                acc = rnd_test(net, tst)
-                # resid = residual(net.z[-1], net.w[-1], net.a[-1], net.beta)
-                # print("Residual: %s" % str(resid))
-                flag = True
-                ttmp += t
-            # mean = mean_lambda(net.l)
-            if acc < accuracy:
-                net, t = rnd_train(net, trn, train_iters=1, warm_iters=0)
-                acc = rnd_test(net, tst)
-                # resid = residual(net.z[-1], net.w[-1], net.a[-1], net.beta)
-                ttmp += t
-            else:
-                rundict['runc'][innit] += 1
-                rundict['timec'] += ttmp
-                break
-            """
-            if mean_lambda(net.l) - mean < 0.000000001:
-                print(mean_lambda(net.l))
-                print(mean)
-                print(acc)
-                break
-            """
-            if innit == k - 1:
-                rundict['runover'] += 1
-                print("Reached Accuracy: %s" % str(acc))
-            elif innit % 5 == 0:
-                print("Accuracy at %s: %s" % (str(innit), str(acc)))
-                #for h in range(30):
-                #    print(net.l[0, h+g], end=' ')
-                print()
-                e = mean_lambda(net.l)
-                #cn = comp_lambda_target(net.l, trn.targets)
-                print("Lambda mean: %s" % str(e))
-                #print("Lambda-targets divergence: %s" % str(cn))
-                print("------------------")
-
-    overs = rundict['runover'] / m
-    runs = [x / m for x in rundict['runc']]
-    if m > rundict['runover']:
-        times = rundict['timec'] / (m - rundict['runover'])
-    else:
-        times = 0
-    print(runs)
-    print(overs)
-    return runs, overs, times
-
-
-def mean_lambda(l):
-    e = np.mean(
-        [np.abs(l[k, w]) for k in range(l.shape[0]) for w in range(l.shape[1])],
-        dtype=np.float64)
-    return e
-
-
-def comp_lambda_target(l, y):
-    counter = 0
-    for i in range(l.shape[0]):
-        for j in range(l.shape[1]):
-            if y[i, j] == 0 and l[i, j] >= 0.:
-                counter += 1
-            elif y[i, j] == 1 and l[i, j] <= 0.:
-                counter += 1
-    return counter
+def sigmoid_normalisation(x):
+    for i in range(150):
+        for j in range(4):
+            x[i, j] = (2.059999 * (1 / (1 + np.exp(- x[i, j])))) - 1.070999
+    return x
 
 
 def iris_measure(trn, tst, ws, m=10, k=100):
@@ -215,7 +208,7 @@ def iris_measure(trn, tst, ws, m=10, k=100):
         net = NeuralNetwork(trn.samples.shape[1],
                             trn.samples.shape[0],
                             trn.targets.shape[0],
-                            23, gamma=1., beta=0.5)
+                            9, gamma=1., beta=0.5)
 
         flag = False
         ttmp = 0.
@@ -234,6 +227,7 @@ def iris_measure(trn, tst, ws, m=10, k=100):
                 if tmpacc >= acc:
                     res.append(rundict(tmpacc, ttmp, innit))
                     break
+                ttmp += t
                 tmpacc = acc
             else:
                 res.append(rundict(acc, ttmp, innit + 1))
@@ -241,22 +235,6 @@ def iris_measure(trn, tst, ws, m=10, k=100):
             if innit == k - 1:
                 res.append(rundict(acc, ttmp, innit + 1))
     return res
-
-
-def main_classification():
-    import operator
-    p = []
-    a = [0.85]
-    for i in a:
-        runs, over, times = iris_measure(i, 1, k=100)
-        if times == 0:
-            continue
-        else:
-            times += ((i * 10) * over)
-        # print(times)
-        p.append({'x': times, 'y': i})
-    newlist = sorted(p, key=operator.itemgetter('x'))
-    # plotout(newlist)
 
 
 def main_iris():
@@ -303,22 +281,22 @@ def main_iris():
     comp_iris(g, g + 100, 100)
     print("===================================================================" * 2)
     print("Compare multiple executions of different splitting of the dataset", end="")
-    print("   [random <= rng < random + 100]", end="")
+    print("   [random <= rng < random + 10]", end="")
     print("   [0.1 <= test size <= 0.5]")
     g = 1 + np.random.randint(1000) + (np.random.randint(20) * np.random.randint(51))
     print("random = %s" % str(g))
     print("test size: %s   " % str(0.1), end="")
-    comp_iris(g, g + 100, 100, sp=0.1)
+    comp_iris(g, g + 10, 100, sp=0.1)
     print("test size: %s   " % str(0.2), end="")
-    comp_iris(g, g + 100, 100, sp=0.2)
+    comp_iris(g, g + 10, 100, sp=0.2)
     print("test size: %s   " % str(0.3), end="")
-    comp_iris(g, g + 100, 100, sp=0.3)
+    comp_iris(g, g + 10, 100, sp=0.3)
     print("test size: %s   " % str(0.4), end="")
-    comp_iris(g, g + 100, 100, sp=0.4)
+    comp_iris(g, g + 10, 100, sp=0.4)
     print("test size: %s   " % str(0.5), end="")
-    comp_iris(g, g + 100, 100, sp=0.5)
+    comp_iris(g, g + 10, 100, sp=0.5)
     print("===================================================================" * 2)
 
 
 if __name__ == '__main__':
-    main_iris()
+    main_classification()
