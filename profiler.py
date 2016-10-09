@@ -2,7 +2,7 @@ import numpy as np
 import time
 
 from sklearn import datasets
-from sklearn.cross_validation import train_test_split
+from sklearn.model_selection import train_test_split
 
 from src.neuralnetwork import Instance, NeuralNetwork
 from src.commons import get_max_index, convert_binary_to_number
@@ -38,39 +38,19 @@ def rnd_test(net, tst_instance):
     return np.round(approx, decimals=6)
 
 
-def plotout(pairs):
-    import matplotlib.pyplot as plt
-    x = [e['x'] for e in pairs]
-    y = [e['y'] for e in pairs]
-    line = plt.plot(x, y)
-    plt.setp(line, color='r', linewidth=1.5)
-    #plt.xticks(np.arange(min(x), max(x) + 1, 0.5))
-    #plt.yticks(np.arange(0.65, 1., 0.05))
-    plt.ylim(min(y), 1.)
-    plt.xlim(min(x), max(x))
-    plt.show()
-
-from sklearn.preprocessing import normalize
-def get_random_data(rng=42):
-    cl = 2
-    X, y = datasets.make_classification(n_samples=10000, n_features=64,
-                                        n_informative=2, n_redundant=22,
-                                        n_repeated=4, random_state=rng)
-    print(X[0, :])
-    # X = rnd_normalisation(X)
-    X = normalize(X, norm='l2', copy=False)
-    print(X[0, :])
+def get_digits(classes=10, rng=42):
+    X, y = datasets.load_digits(n_class=classes, return_X_y=True)
 
     X_train, X_test, y_train, y_test = train_test_split(X, y,
-                                                        test_size=0.75,
+                                                        test_size=0.2,
                                                         random_state=rng)
 
-    trg_train = np.zeros((cl, len(y_train)), dtype='uint8')
+    trg_train = np.zeros((classes, len(y_train)), dtype='uint8')
     for e in range(trg_train.shape[1]):
         v = y_train[e]
         trg_train[v, e] = 1
 
-    trg_test = np.zeros((cl, len(y_test)), dtype='uint8')
+    trg_test = np.zeros((classes, len(y_test)), dtype='uint8')
     for e in range(trg_test.shape[1]):
         v = y_test[e]
         trg_test[v, e] = 1
@@ -80,16 +60,7 @@ def get_random_data(rng=42):
     return trn, tst
 
 
-def rnd_normalisation(x):
-    # x has shape (N, 64)
-    for i in range(x.shape[0]):
-        dem = np.sum(np.exp(x[i, :]))
-        for j in range(x.shape[1]):
-            x[i, j] = np.exp(x[i, j]) / dem
-    return x
-
-
-def rnd_measure(trn, tst, ws, m=3, k=30):
+def digits_measure(trn, tst, ws, m=10, k=100):
     res = []
 
     class rundict():
@@ -108,7 +79,6 @@ def rnd_measure(trn, tst, ws, m=3, k=30):
         ttmp = 0.
         ctrl = 0
         tacc = -1.
-        print("============ " + str(it + 1))
 
         for innit in range(k):
             if flag is False:
@@ -120,7 +90,6 @@ def rnd_measure(trn, tst, ws, m=3, k=30):
             if acc < 0.99:
                 net, t = rnd_train(net, trn, train_iters=1, warm_iters=0)
                 acc = rnd_test(net, tst)
-                print("acc: %f" % acc)
                 if tacc >= acc:
                     ctrl += 1
                 else:
@@ -128,10 +97,7 @@ def rnd_measure(trn, tst, ws, m=3, k=30):
                     ttim = ttmp + t
                     tk = innit
                     ctrl = 0
-                if ctrl >= 5:
-                    print("max acc: %f" % tacc)
-                    print("max time: %f" % ttim)
-                    print("max k: %d" % (tk + 1))
+                if ctrl >= 7:
                     res.append(rundict(tacc, ttim, tk + 1))
                     break
                 ttmp += t
@@ -140,15 +106,132 @@ def rnd_measure(trn, tst, ws, m=3, k=30):
                 break
 
             if innit == k - 1:
-                res.append(rundict(acc, ttmp, innit + 1))
+                if ctrl == 0:
+                    res.append(rundict(acc, ttmp, innit + 1))
+                else:
+                    res.append(rundict(tacc, ttim, tk + 1))
     return res
 
 
-def main_classification():
+def digits_standard(runlist):
+    from collections import defaultdict
+    d = defaultdict(int)
+    for e in runlist:
+        a = np.round(e.accuracy, decimals=2)
+        d[a] += 1
+    return d
+
+
+def digits_histogram(accuracy_dict):
+    import matplotlib.pyplot as plt
+    pass
+
+
+def main_digits():
+    trn, tst = get_digits()
+    res = digits_measure(trn, tst, 10, m=5, k=100)
+    mydict = digits_standard(res)
+    digits_histogram(mydict)
+
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+#                                 RANDOM Dataset                                         #
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+
+
+def get_random_data(rng=42):
+    cl = 2
+    X, y = datasets.make_classification(n_samples=10000, n_features=48,
+                                        n_informative=2, n_redundant=20,
+                                        n_repeated=2, random_state=rng)
+    X = rnd_normalisation(X)
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y,
+                                                        test_size=0.6,
+                                                        random_state=rng)
+
+    trg_train = np.zeros((cl, len(y_train)), dtype='uint8')
+    for e in range(trg_train.shape[1]):
+        v = y_train[e]
+        trg_train[v, e] = 1
+
+    trg_test = np.zeros((cl, len(y_test)), dtype='uint8')
+    for e in range(trg_test.shape[1]):
+        v = y_test[e]
+        trg_test[v, e] = 1
+
+    trn = Instance(X_train.T, trg_train)
+    tst = Instance(X_test.T, trg_test)
+    return trn, tst
+
+
+def rnd_normalisation(x):
+    # x has shape (samples, features)
+    for i in range(x.shape[0]):
+        dem = np.sum(np.exp(x[i, :]))
+        for j in range(x.shape[1]):
+            x[i, j] = np.exp(x[i, j]) / dem
+    return x
+
+
+def rnd_measure(trn, tst, ws, m=10, k=50):
+    res = []
+
+    class rundict():
+        def __init__(self, accuracylabel, timelabel, runsnumber):
+            self.accuracy = accuracylabel
+            self.time = timelabel
+            self.run = runsnumber
+
+    for it in range(m):
+        net = NeuralNetwork(trn.samples.shape[1],
+                            trn.samples.shape[0],
+                            trn.targets.shape[0],
+                            49, 25, gamma=10., beta=1.)
+
+        flag = False
+        ttmp = 0.
+        ctrl = 0
+        tacc = -1.
+
+        for innit in range(k):
+            if flag is False:
+                net, t = rnd_train(net, trn, train_iters=0, warm_iters=ws)
+                acc = rnd_test(net, tst)
+                flag = True
+                ttmp += t
+
+            if acc < 0.99:
+                net, t = rnd_train(net, trn, train_iters=1, warm_iters=0)
+                acc = rnd_test(net, tst)
+                if tacc >= acc:
+                    ctrl += 1
+                else:
+                    tacc = acc
+                    ttim = ttmp + t
+                    tk = innit
+                    ctrl = 0
+                if ctrl >= 5:
+                    res.append(rundict(tacc, ttim, tk + 1))
+                    break
+                ttmp += t
+            else:
+                res.append(rundict(acc, ttmp, innit + 1))
+                break
+
+            if innit == k - 1:
+                if ctrl == 0:
+                    res.append(rundict(acc, ttmp, innit + 1))
+                else:
+                    res.append(rundict(tacc, ttim, tk + 1))
+    return res
+
+
+def main_random():
     # import operator
 
-    trn, tst = get_random_data()
-    res = rnd_measure(trn, tst, 8)
+    trn, tst = get_random_data(rng=42)
+    res = rnd_measure(trn, tst, 10, m=5, k=50)
     for e in res:
         print(e.accuracy)
 
@@ -299,4 +382,4 @@ def main_iris():
 
 
 if __name__ == '__main__':
-    main_classification()
+    main_digits()
