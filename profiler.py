@@ -73,7 +73,7 @@ def digits_measure(trn, tst, ws, m=10, k=100):
         net = NeuralNetwork(trn.samples.shape[1],
                             trn.samples.shape[0],
                             trn.targets.shape[0],
-                            129, gamma=10., beta=1.)
+                            129, gamma=10., beta=2.)
 
         flag = False
         ttmp = 0.
@@ -97,7 +97,7 @@ def digits_measure(trn, tst, ws, m=10, k=100):
                     ttim = ttmp + t
                     tk = innit
                     ctrl = 0
-                if ctrl >= 7:
+                if ctrl >= 4:
                     res.append(rundict(tacc, ttim, tk + 1))
                     break
                 ttmp += t
@@ -113,26 +113,99 @@ def digits_measure(trn, tst, ws, m=10, k=100):
     return res
 
 
-def digits_standard(runlist):
-    from collections import defaultdict
-    d = defaultdict(int)
-    for e in runlist:
-        a = np.round(e.accuracy, decimals=2)
-        d[a] += 1
-    return d
-
-
-def digits_histogram(accuracy_dict):
-    import matplotlib.pyplot as plt
-    pass
-
-
 def main_digits():
-    trn, tst = get_digits()
-    res = digits_measure(trn, tst, 10, m=5, k=100)
-    mydict = digits_standard(res)
-    digits_histogram(mydict)
+    def comp_digits(dmin, dmax, ws, dm, cl=10):
+        mean_acc = 0.
+        mean_time = 0.
+        mean_runs = 0.
+        min_acc = 0.
+        max_acc = 0.
+        delta = dmax - dmin
+        for i in range(dmin, dmax):
+            trn, tst = get_digits(classes=cl, rng=i)
+            res = digits_measure(trn, tst, ws, m=dm)
+            mean_acc += np.mean([e.accuracy for e in res])
+            mean_time += np.mean([e.time for e in res])
+            mean_runs += np.mean([e.run for e in res])
+            min_acc += np.min([e.accuracy for e in res])
+            max_acc += np.max([e.accuracy for e in res])
+        print(
+            "classes: %d  mean accuracy: %f  min peak: %f  "
+            "max peak: %f  mean time: %f  mean runs: %f  warm iters: %d" %
+            (cl, mean_acc / delta, min_acc / delta, max_acc / delta,
+             mean_time / delta, mean_runs / delta, ws))
 
+    print("===================================================================" * 2)
+    print("Compare one execution with two different splitting of the dataset")
+    trn, tst = get_digits(rng=11)
+    res2 = digits_measure(trn, tst, 10, m=1)
+    trn, tst = get_digits(rng=42)
+    res1 = digits_measure(trn, tst, 10, m=1)
+    print("rng: %d   accuracy: %f   time: %f   runs: %d" % (42, res1[0].accuracy, res1[0].time, res1[0].run))
+    print("rng: %d   accuracy: %f   time: %f   runs: %d" % (11, res2[0].accuracy, res2[0].time, res2[0].run))
+    print("===================================================================" * 2)
+    print("Compare multiple executions of the same splitting (rng = 42)")
+    comp_digits(42, 43, 10, 25)
+    print("===================================================================" * 2)
+    print("Compare multiple executions of different splitting of the dataset", end="")
+    print("   [0 <= rng < 10]")
+    comp_digits(0, 10, 10, 10)
+    print("===================================================================" * 2)
+    print("Compare multiple executions of different splitting of the dataset", end="")
+    print("   [random <= rng < random + 100]")
+    g = 1 + np.random.randint(1000) + (np.random.randint(20) * np.random.randint(51))
+    print("random = %s" % str(g))
+    comp_digits(g, g + 100, 10, 10)
+    print("===================================================================" * 2)
+
+
+def digits_accuracy_listing(runlist):
+    r = []
+    for e in runlist:
+        r.append(np.round(e.accuracy, decimals=2))
+    return r
+
+
+def digits_histogram(l):
+    import matplotlib.patches as mpatches
+    import matplotlib.pyplot as plt
+    from scipy import stats
+
+    data = np.array([int(i * 100) for i in l])
+    nbins = 20
+    print(len(data))
+
+    plt.hist(data, nbins, normed=True, facecolor='g', alpha=0.75, align='right')
+    lnspc = np.linspace(min(data), max(data), len(data))
+    k = 2.
+
+    w = 2.
+    m, s = stats.norm.fit(data)
+    pdf_g = stats.norm.pdf(lnspc, m, s) * k
+    plt.plot(lnspc, pdf_g, 'r--', label='Norm', linewidth=w)
+
+    # exactly same as above
+    ag, bg, cg = stats.gamma.fit(data)
+    pdf_gamma = stats.gamma.pdf(lnspc, ag, bg, cg) * k
+    plt.plot(lnspc, pdf_gamma, 'b--', label="Gamma", linewidth=w)
+
+    # guess what :)
+    ab, bb, cb, db = stats.beta.fit(data)
+    pdf_beta = stats.beta.pdf(lnspc, ab, bb, cb, db) * k
+    plt.plot(lnspc, pdf_beta, 'k--', label="Beta", linewidth=w)
+
+    # plt.axvline(100, color='k', ls='--')
+
+    plt.subplots_adjust(left=0.1)
+    plt.grid(True)
+
+    red = mpatches.Patch(color='red', label='Normal')
+    green = mpatches.Patch(color='blue', label='Gamma')
+    beta = mpatches.Patch(color='black', label='Beta')
+    plt.legend(loc=2, handles=[red, green, beta])
+
+    plt.xlim(75, 102)
+    plt.show()
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
 #                                 RANDOM Dataset                                         #
@@ -245,7 +318,7 @@ def main_random():
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
 
 
-def get_iris(rng=42, tst_size=0.3):
+def get_iris(rng=42, tst_size=0.25):
     iris = datasets.load_iris()
     X = iris.data
     y = iris.target
@@ -381,5 +454,77 @@ def main_iris():
     print("===================================================================" * 2)
 
 
+def iris_accuracy_listing(runlist):
+    r = []
+    for e in runlist:
+        r.append(np.round(e.accuracy, decimals=2))
+    return r
+
+
+def iris_histogram(l):
+    import matplotlib.patches as mpatches
+    import matplotlib.pyplot as plt
+    from scipy import stats
+
+    data = np.array([int(i * 100) for i in l])
+    nbins = 75
+    print(len(data))
+
+    fig = plt.figure(1)
+    fig.set_figheight(12)
+    fig.set_figwidth(9)
+    fr = fig.patch
+    fr.set_facecolor('white')
+
+    plt.hist(data, nbins, normed=True, facecolor='g', alpha=0.75, align='right')
+    lnspc = np.linspace(min(data), max(data), len(data))
+    k = 3.
+
+    w = 2.
+    m, s = stats.norm.fit(data)
+    pdf_g = stats.norm.pdf(lnspc, m, s) * k
+    plt.plot(lnspc, pdf_g, 'r--', label='Norm', linewidth=w)
+
+    # exactly same as above
+    ag, bg, cg = stats.gamma.fit(data)
+    pdf_gamma = stats.gamma.pdf(lnspc, ag, bg, cg) * k
+    plt.plot(lnspc, pdf_gamma, 'b--', label="Gamma", linewidth=w)
+
+    # guess what :)
+    ab, bb, cb, db = stats.beta.fit(data)
+    pdf_beta = stats.beta.pdf(lnspc, ab, bb, cb, db) * k
+    plt.plot(lnspc, pdf_beta, 'k--', label="Beta", linewidth=w)
+
+    normal = mpatches.Patch(color='red', label='Normal')
+    gamma = mpatches.Patch(color='blue', label='Gamma')
+    beta = mpatches.Patch(color='black', label='Beta')
+    plt.legend(loc=2, handles=[normal, gamma, beta])
+
+    plt.xlim(60, 102)
+    plt.subplots_adjust(left=0.1)
+    plt.grid(True)
+    plt.xlabel("accuracy")
+    plt.ylabel("probability density")
+    plt.show()
+
+
+def iris_draw(interv, reps):
+    res = []
+
+    g = np.random.randint(1000) + np.random.randint(1000)
+    f = g + interv
+    print("seed: %d" % g)
+
+    st = time.time()
+    for i in range(g, f):
+        trn, tst = get_iris(rng=i)
+        res += iris_measure(trn, tst, 1, m=reps)
+    endt = time.time() - st
+    print("Time: %s" % str(round(endt, ndigits=2)))
+
+    l = iris_accuracy_listing(res)
+    iris_histogram(l)
+
+
 if __name__ == '__main__':
-    main_digits()
+    iris_draw(100, 100)
