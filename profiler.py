@@ -38,6 +38,15 @@ def rnd_test(net, tst_instance):
     return np.round(approx, decimals=6)
 
 
+def accuracy_listing(runlist):
+    r = []
+    for e in runlist:
+        r.append(np.round(e.accuracy, decimals=2))
+    return r
+
+#####
+
+
 def get_digits(classes=10, rng=42):
     X, y = datasets.load_digits(n_class=classes, return_X_y=True)
 
@@ -159,13 +168,6 @@ def main_digits():
     print("===================================================================" * 2)
 
 
-def digits_accuracy_listing(runlist):
-    r = []
-    for e in runlist:
-        r.append(np.round(e.accuracy, decimals=2))
-    return r
-
-
 def digits_histogram(l):
     import matplotlib.patches as mpatches
     import matplotlib.pyplot as plt
@@ -227,7 +229,7 @@ def digits_draw(interv, reps):
     endt = time.time() - st
     print("Time: %s" % str(round(endt, ndigits=2)))
 
-    l = digits_accuracy_listing(res)
+    l = accuracy_listing(res)
     digits_histogram(l)
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
@@ -283,7 +285,7 @@ def rnd_measure(trn, tst, ws, m=10, k=100):
         net = NeuralNetwork(trn.samples.shape[1],
                             trn.samples.shape[0],
                             trn.targets.shape[0],
-                            33, 9, gamma=3., beta=2.)
+                            33, 9, gamma=1., beta=1.)
 
         flag = False
         ttmp = 0.
@@ -345,22 +347,86 @@ def main_random():
             (mean_acc / delta, min_acc / delta, max_acc / delta,
              mean_time / delta, mean_runs / delta, ws))
 
-    its = 3
+    its = 4
     print("=" * 72)
     print("Compare multiple executions of the same splitting (rng = 42)")
-    comp_random(42, 43, its, 5)
+    comp_random(42, 43, its, 10)
     print("=" * 72)
     print("Compare multiple executions of different splitting of the dataset", end="")
     print("   [0 <= rng < 10]")
     comp_random(0, 10, its, 5)
     print("=" * 72)
     print("Compare multiple executions of different splitting of the dataset", end="")
-    print("   [random <= rng < random + 100]")
+    print("   [random <= rng < random + 10]")
     g = 1 + np.random.randint(1000) + (np.random.randint(20) * np.random.randint(51))
     print("random = %s" % str(g))
-
+    comp_random(g, g + 10, its, 5)
     print("=" * 72)
 
+
+def rnd_histogram(l):
+    import matplotlib.patches as mpatches
+    import matplotlib.pyplot as plt
+    from scipy import stats
+
+    data = np.array([int(i * 100) for i in l])
+    nbins = 50
+    print(len(data))
+
+    fig = plt.figure(1)
+    fig.set_figheight(12)
+    fig.set_figwidth(9)
+    fr = fig.patch
+    fr.set_facecolor('white')
+
+    plt.hist(data, nbins, normed=True, facecolor='g', alpha=0.75, align='right')
+    lnspc = np.linspace(min(data), max(data), len(data))
+    k = 1.
+
+    w = 2.
+    m, s = stats.norm.fit(data)
+    pdf_g = stats.norm.pdf(lnspc, m, s) * k
+    plt.plot(lnspc, pdf_g, 'r--', label='Norm', linewidth=w)
+
+    # exactly same as above
+    ag, bg, cg = stats.gamma.fit(data)
+    pdf_gamma = stats.gamma.pdf(lnspc, ag, bg, cg) * k
+    plt.plot(lnspc, pdf_gamma, 'b--', label="Gamma", linewidth=w)
+
+    # guess what :)
+    ab, bb, cb, db = stats.beta.fit(data)
+    pdf_beta = stats.beta.pdf(lnspc, ab, bb, cb, db) * k
+    plt.plot(lnspc, pdf_beta, 'k--', label="Beta", linewidth=w)
+
+    normal = mpatches.Patch(color='red', label='Normal')
+    gamma = mpatches.Patch(color='blue', label='Gamma')
+    beta = mpatches.Patch(color='black', label='Beta')
+    plt.legend(loc=2, handles=[normal, gamma, beta])
+
+    plt.xlim(60, 102)
+    plt.subplots_adjust(left=0.1)
+    plt.grid(True)
+    plt.xlabel("accuracy")
+    plt.ylabel("probability density")
+    plt.show()
+
+
+def rnd_draw(interv, reps):
+    res = []
+
+    g = np.random.randint(1000) + np.random.randint(1000)
+    f = g + interv
+    print("seed: %d" % g)
+
+    st = time.time()
+    for i in range(g, f):
+        trn, tst = get_random_data(rng=i)
+        res += rnd_measure(trn, tst, 4, m=reps)
+    endt = time.time() - st
+    print("Time: %s" % str(round(endt, ndigits=2)))
+
+    l = accuracy_listing(res)
+    rnd_histogram(l)
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
 #                                 IRIS Dataset                                           #
@@ -372,7 +438,7 @@ def get_iris(rng=42, tst_size=0.25):
     X = iris.data
     y = iris.target
 
-    X = sigmoid_normalisation(X)
+    X = iris_normalisation(X)
 
     X_train, X_test, y_train, y_test = train_test_split(X, y,
                                                         test_size=tst_size,
@@ -393,7 +459,7 @@ def get_iris(rng=42, tst_size=0.25):
     return trn, tst
 
 
-def sigmoid_normalisation(x):
+def iris_normalisation(x):
     for i in range(150):
         for j in range(4):
             x[i, j] = (2.059999 * (1 / (1 + np.exp(- x[i, j])))) - 1.070999
@@ -503,13 +569,6 @@ def main_iris():
     print("===================================================================" * 2)
 
 
-def iris_accuracy_listing(runlist):
-    r = []
-    for e in runlist:
-        r.append(np.round(e.accuracy, decimals=2))
-    return r
-
-
 def iris_histogram(l):
     import matplotlib.patches as mpatches
     import matplotlib.pyplot as plt
@@ -571,9 +630,9 @@ def iris_draw(interv, reps):
     endt = time.time() - st
     print("Time: %s" % str(round(endt, ndigits=2)))
 
-    l = iris_accuracy_listing(res)
+    l = accuracy_listing(res)
     iris_histogram(l)
 
 
 if __name__ == '__main__':
-    main_random()
+    iris_draw(100, 10)
