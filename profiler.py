@@ -172,8 +172,14 @@ def digits_histogram(l):
     from scipy import stats
 
     data = np.array([int(i * 100) for i in l])
-    nbins = 20
+    nbins = 30
     print(len(data))
+
+    fig = plt.figure(1)
+    fig.set_figheight(12)
+    fig.set_figwidth(9)
+    fr = fig.patch
+    fr.set_facecolor('white')
 
     plt.hist(data, nbins, normed=True, facecolor='g', alpha=0.75, align='right')
     lnspc = np.linspace(min(data), max(data), len(data))
@@ -194,18 +200,35 @@ def digits_histogram(l):
     pdf_beta = stats.beta.pdf(lnspc, ab, bb, cb, db) * k
     plt.plot(lnspc, pdf_beta, 'k--', label="Beta", linewidth=w)
 
-    # plt.axvline(100, color='k', ls='--')
+    normal = mpatches.Patch(color='red', label='Normal')
+    gamma = mpatches.Patch(color='blue', label='Gamma')
+    beta = mpatches.Patch(color='black', label='Beta')
+    plt.legend(loc=2, handles=[normal, gamma, beta])
 
+    plt.xlim(60, 102)
     plt.subplots_adjust(left=0.1)
     plt.grid(True)
-
-    red = mpatches.Patch(color='red', label='Normal')
-    green = mpatches.Patch(color='blue', label='Gamma')
-    beta = mpatches.Patch(color='black', label='Beta')
-    plt.legend(loc=2, handles=[red, green, beta])
-
-    plt.xlim(75, 102)
+    plt.xlabel("accuracy")
+    plt.ylabel("probability density")
     plt.show()
+
+
+def digits_draw(interv, reps):
+    res = []
+
+    g = np.random.randint(1000) + np.random.randint(1000)
+    f = g + interv
+    print("seed: %d" % g)
+
+    st = time.time()
+    for i in range(g, f):
+        trn, tst = get_digits(classes=10, rng=i)
+        res += digits_measure(trn, tst, 10, m=reps)
+    endt = time.time() - st
+    print("Time: %s" % str(round(endt, ndigits=2)))
+
+    l = digits_accuracy_listing(res)
+    digits_histogram(l)
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
 #                                 RANDOM Dataset                                         #
@@ -214,13 +237,13 @@ def digits_histogram(l):
 
 def get_random_data(rng=42):
     cl = 2
-    X, y = datasets.make_classification(n_samples=10000, n_features=48,
-                                        n_informative=2, n_redundant=20,
+    X, y = datasets.make_classification(n_samples=3000, n_features=16,
+                                        n_informative=2, n_redundant=4,
                                         n_repeated=2, random_state=rng)
     X = rnd_normalisation(X)
 
     X_train, X_test, y_train, y_test = train_test_split(X, y,
-                                                        test_size=0.6,
+                                                        test_size=0.5,
                                                         random_state=rng)
 
     trg_train = np.zeros((cl, len(y_train)), dtype='uint8')
@@ -247,7 +270,7 @@ def rnd_normalisation(x):
     return x
 
 
-def rnd_measure(trn, tst, ws, m=10, k=50):
+def rnd_measure(trn, tst, ws, m=10, k=100):
     res = []
 
     class rundict():
@@ -260,7 +283,7 @@ def rnd_measure(trn, tst, ws, m=10, k=50):
         net = NeuralNetwork(trn.samples.shape[1],
                             trn.samples.shape[0],
                             trn.targets.shape[0],
-                            49, 25, gamma=10., beta=1.)
+                            33, 9, gamma=3., beta=2.)
 
         flag = False
         ttmp = 0.
@@ -284,7 +307,7 @@ def rnd_measure(trn, tst, ws, m=10, k=50):
                     ttim = ttmp + t
                     tk = innit
                     ctrl = 0
-                if ctrl >= 5:
+                if ctrl >= 4:
                     res.append(rundict(tacc, ttim, tk + 1))
                     break
                 ttmp += t
@@ -301,16 +324,42 @@ def rnd_measure(trn, tst, ws, m=10, k=50):
 
 
 def main_random():
-    # import operator
+    def comp_random(dmin, dmax, ws, dm):
+        mean_acc = 0.
+        mean_time = 0.
+        mean_runs = 0.
+        min_acc = 0.
+        max_acc = 0.
+        delta = dmax - dmin
+        for i in range(dmin, dmax):
+            trn, tst = get_random_data(rng=i)
+            res = rnd_measure(trn, tst, ws, m=dm)
+            mean_acc += np.mean([e.accuracy for e in res])
+            mean_time += np.mean([e.time for e in res])
+            mean_runs += np.mean([e.run for e in res])
+            min_acc += np.min([e.accuracy for e in res])
+            max_acc += np.max([e.accuracy for e in res])
+        print(
+            "mean accuracy: %f  min peak: %f  "
+            "max peak: %f  mean time: %f  mean runs: %f  warm iters: %d" %
+            (mean_acc / delta, min_acc / delta, max_acc / delta,
+             mean_time / delta, mean_runs / delta, ws))
 
-    trn, tst = get_random_data(rng=42)
-    res = rnd_measure(trn, tst, 10, m=5, k=50)
-    for e in res:
-        print(e.accuracy)
+    its = 3
+    print("=" * 72)
+    print("Compare multiple executions of the same splitting (rng = 42)")
+    comp_random(42, 43, its, 5)
+    print("=" * 72)
+    print("Compare multiple executions of different splitting of the dataset", end="")
+    print("   [0 <= rng < 10]")
+    comp_random(0, 10, its, 5)
+    print("=" * 72)
+    print("Compare multiple executions of different splitting of the dataset", end="")
+    print("   [random <= rng < random + 100]")
+    g = 1 + np.random.randint(1000) + (np.random.randint(20) * np.random.randint(51))
+    print("random = %s" % str(g))
 
-    # p.append({'x': times, 'y': i})
-    # newlist = sorted(p, key=operator.itemgetter('x'))
-    # plotout(newlist)
+    print("=" * 72)
 
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
@@ -478,7 +527,7 @@ def iris_histogram(l):
 
     plt.hist(data, nbins, normed=True, facecolor='g', alpha=0.75, align='right')
     lnspc = np.linspace(min(data), max(data), len(data))
-    k = 3.
+    k = 3.5
 
     w = 2.
     m, s = stats.norm.fit(data)
@@ -527,4 +576,4 @@ def iris_draw(interv, reps):
 
 
 if __name__ == '__main__':
-    iris_draw(100, 100)
+    main_random()
