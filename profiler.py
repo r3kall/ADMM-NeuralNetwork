@@ -45,14 +45,40 @@ def accuracy_listing(runlist):
     return r
 
 
-def draw_histogram(l, nbins=50, k=1.):
+def foo(data):
+    l = len(data)
+    assert l > 0
+    pr = 100
+    count = np.bincount(data)
+    st = None
+    it = 0
+
+    for e in range(100):
+        if 0 < count[e] < pr:
+            st = None
+        elif count[e] >= pr and (st is None):
+            st = count[e]
+            it = e
+        elif count[e] >= pr and (st is not None):
+            m = (count[e] + st) // 2
+            for j in range(it + 1, e):
+                count[j] = m
+            st = count[e]
+            it = e
+
+    inv = -2
+    while count[inv] == 0:
+        inv -= 1
+    print(inv)
+    print(count[inv])
+
+    return np.repeat(np.arange(count.size), count)
+
+
+def draw_histogram(l):
     import matplotlib.patches as mpatches
     import matplotlib.pyplot as plt
     from scipy import stats
-
-    data = np.array([int(i * 100) for i in l])
-    #print(sorted(data))
-    print(len(data))
 
     fig = plt.figure(1)
     fig.set_figheight(12)
@@ -60,24 +86,31 @@ def draw_histogram(l, nbins=50, k=1.):
     fr = fig.patch
     fr.set_facecolor('white')
 
-    n, bins, patches = plt.hist(data, bins=nbins, normed=False, facecolor='g', alpha=0.5, align='left')
-    lnspc = np.linspace(min(data), max(data), len(data))
+    data = np.array([int(i * 100) for i in l])
+    lnspc = np.linspace(min(data), max(data), 100)
+    d = np.diff(np.unique(data)).min()
 
     w = 2.
+    k = float(d)
+
     m, s = stats.norm.fit(data)
     print("mean: %f   sigma: %f" % (m, s))
+    print("median: %f" % np.median(data))
     pdf_g = stats.norm.pdf(lnspc, m, s) * k
     plt.plot(lnspc, pdf_g, 'r--', label='Norm', linewidth=w)
 
-    # exactly same as above
     ag, bg, cg = stats.gamma.fit(data)
     pdf_gamma = stats.gamma.pdf(lnspc, ag, bg, cg) * k
     plt.plot(lnspc, pdf_gamma, 'b--', label="Gamma", linewidth=w)
 
-    # guess what :)
     ab, bb, cb, db = stats.beta.fit(data)
     pdf_beta = stats.beta.pdf(lnspc, ab, bb, cb, db) * k
     plt.plot(lnspc, pdf_beta, 'k--', label="Beta", linewidth=w)
+
+    left_of_first_bin = data.min() - float(d) / 2
+    right_of_last_bin = data.max() + float(d) / 2
+    plt.hist(data, np.arange(left_of_first_bin, right_of_last_bin + d, (d / 2)),
+             normed=True, align='left', facecolor='g', alpha=0.5)
 
     normal = mpatches.Patch(color='red', label='Normal')
     gamma = mpatches.Patch(color='blue', label='Gamma')
@@ -85,7 +118,7 @@ def draw_histogram(l, nbins=50, k=1.):
     plt.legend(loc=2, handles=[normal, gamma, beta])
 
     plt.xlim(60, 102)
-    plt.subplots_adjust(left=0.1)
+    plt.subplots_adjust(left=0.15)
     plt.grid(True)
     plt.xlabel("accuracy")
     plt.ylabel("probability density")
@@ -525,7 +558,7 @@ def main_iris():
 def iris_draw(interv, reps):
     res = []
 
-    g = np.random.randint(1000) + np.random.randint(1000)
+    g = np.random.randint(1000) + np.random.randint(500)
     f = g + interv
     print("seed: %d" % g)
 
@@ -537,7 +570,7 @@ def iris_draw(interv, reps):
     print("Time: %s" % str(round(endt, ndigits=2)))
 
     l = accuracy_listing(res)
-    draw_histogram(l, nbins=99, k=1.)
+    draw_histogram(l)
 
 
 if __name__ == '__main__':
