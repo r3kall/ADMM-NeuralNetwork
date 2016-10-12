@@ -45,37 +45,7 @@ def accuracy_listing(runlist):
     return r
 
 
-def foo(data):
-    l = len(data)
-    assert l > 0
-    pr = 100
-    count = np.bincount(data)
-    st = None
-    it = 0
-
-    for e in range(100):
-        if 0 < count[e] < pr:
-            st = None
-        elif count[e] >= pr and (st is None):
-            st = count[e]
-            it = e
-        elif count[e] >= pr and (st is not None):
-            m = (count[e] + st) // 2
-            for j in range(it + 1, e):
-                count[j] = m
-            st = count[e]
-            it = e
-
-    inv = -2
-    while count[inv] == 0:
-        inv -= 1
-    print(inv)
-    print(count[inv])
-
-    return np.repeat(np.arange(count.size), count)
-
-
-def draw_histogram(l):
+def draw_histogram(l, dataname):
     import matplotlib.patches as mpatches
     import matplotlib.pyplot as plt
     from scipy import stats
@@ -88,10 +58,15 @@ def draw_histogram(l):
 
     data = np.array([int(i * 100) for i in l])
     lnspc = np.linspace(min(data), max(data), 100)
+
     d = np.diff(np.unique(data)).min()
+    left_of_first_bin = data.min() - float(d) / 2
+    right_of_last_bin = data.max() + float(d) / 2
+    plt.hist(data, np.arange(left_of_first_bin, right_of_last_bin + d, (d / 2)),
+             normed=True, align='left', facecolor='g', alpha=0.6)
 
     w = 2.
-    k = float(d)
+    k = float(d) + 1.
 
     m, s = stats.norm.fit(data)
     print("mean: %f   sigma: %f" % (m, s))
@@ -107,24 +82,25 @@ def draw_histogram(l):
     pdf_beta = stats.beta.pdf(lnspc, ab, bb, cb, db) * k
     plt.plot(lnspc, pdf_beta, 'k--', label="Beta", linewidth=w)
 
-    left_of_first_bin = data.min() - float(d) / 2
-    right_of_last_bin = data.max() + float(d) / 2
-    plt.hist(data, np.arange(left_of_first_bin, right_of_last_bin + d, (d / 2)),
-             normed=True, align='left', facecolor='g', alpha=0.5)
-
     normal = mpatches.Patch(color='red', label='Normal')
     gamma = mpatches.Patch(color='blue', label='Gamma')
     beta = mpatches.Patch(color='black', label='Beta')
     plt.legend(loc=2, handles=[normal, gamma, beta])
 
-    plt.xlim(60, 102)
+    plt.xlim(70, 102)
     plt.subplots_adjust(left=0.15)
     plt.grid(True)
     plt.xlabel("accuracy")
     plt.ylabel("probability density")
+    plt.title(r'{0} dataset  $ \mu={1}, \ \sigma={2}, \ median={3}$'.format(dataname,
+                                                              np.round(m, decimals=2),
+                                                              np.round(s, decimals=2),
+                                                              np.median(data)))
     plt.show()
 
-#####
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+#                                 DIGITS Dataset                                         #
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
 
 
 def get_digits(classes=10, rng=42):
@@ -258,12 +234,12 @@ def digits_draw(interv, reps):
     st = time.time()
     for i in range(g, f):
         trn, tst = get_digits(classes=10, rng=i)
-        res += digits_measure(trn, tst, 10, m=reps)
+        res += digits_measure(trn, tst, 12, m=reps)
     endt = time.time() - st
     print("Time: %s" % str(round(endt, ndigits=2)))
 
     l = accuracy_listing(res)
-    draw_histogram(l)
+    draw_histogram(l, 'digits')
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
 #                                 RANDOM Dataset                                         #
@@ -400,7 +376,7 @@ def main_random():
 def rnd_draw(interv, reps):
     res = []
 
-    g = np.random.randint(1000) + np.random.randint(1000)
+    g = np.random.randint(1000)
     f = g + interv
     print("seed: %d" % g)
 
@@ -412,7 +388,7 @@ def rnd_draw(interv, reps):
     print("Time: %s" % str(round(endt, ndigits=2)))
 
     l = accuracy_listing(res)
-    draw_histogram(l)
+    draw_histogram(l, 'random')
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
 #                                 IRIS Dataset                                           #
@@ -558,7 +534,7 @@ def main_iris():
 def iris_draw(interv, reps):
     res = []
 
-    g = np.random.randint(1000) + np.random.randint(500)
+    g = np.random.randint(1000)
     f = g + interv
     print("seed: %d" % g)
 
@@ -570,8 +546,8 @@ def iris_draw(interv, reps):
     print("Time: %s" % str(round(endt, ndigits=2)))
 
     l = accuracy_listing(res)
-    draw_histogram(l)
+    draw_histogram(l, 'iris')
 
 
 if __name__ == '__main__':
-    iris_draw(100, 10)
+    digits_draw(20, 20)
