@@ -66,7 +66,7 @@ def draw_histogram(l, dataname):
              normed=True, align='left', facecolor='g', alpha=0.6)
 
     w = 2.
-    k = float(d) + 1.
+    k = float(d) * 5.
 
     m, s = stats.norm.fit(data)
     print("mean: %f   sigma: %f" % (m, s))
@@ -93,8 +93,8 @@ def draw_histogram(l, dataname):
     plt.xlabel("accuracy")
     plt.ylabel("probability density")
     plt.title(r'{0} dataset  $ \mu={1}, \ \sigma={2}, \ median={3}$'.format(dataname,
-                                                              np.round(m, decimals=2),
-                                                              np.round(s, decimals=2),
+                                                              np.round(m, decimals=1),
+                                                              np.round(s, decimals=1),
                                                               np.median(data)))
     plt.show()
 
@@ -138,7 +138,7 @@ def digits_measure(trn, tst, ws, m=10, k=100):
         net = NeuralNetwork(trn.samples.shape[1],
                             trn.samples.shape[0],
                             trn.targets.shape[0],
-                            129, gamma=10., beta=2.)
+                            129, gamma=10., beta=1.)
 
         flag = False
         ttmp = 0.
@@ -201,20 +201,12 @@ def main_digits():
              mean_time / delta, mean_runs / delta, ws))
 
     print("===================================================================" * 2)
-    print("Compare one execution with two different splitting of the dataset")
-    trn, tst = get_digits(rng=11)
-    res2 = digits_measure(trn, tst, 10, m=1)
-    trn, tst = get_digits(rng=42)
-    res1 = digits_measure(trn, tst, 10, m=1)
-    print("rng: %d   accuracy: %f   time: %f   runs: %d" % (42, res1[0].accuracy, res1[0].time, res1[0].run))
-    print("rng: %d   accuracy: %f   time: %f   runs: %d" % (11, res2[0].accuracy, res2[0].time, res2[0].run))
-    print("===================================================================" * 2)
     print("Compare multiple executions of the same splitting (rng = 42)")
-    comp_digits(42, 43, 10, 25)
+    comp_digits(42, 43, 10, 100)
     print("===================================================================" * 2)
     print("Compare multiple executions of different splitting of the dataset", end="")
     print("   [0 <= rng < 10]")
-    comp_digits(0, 10, 10, 10)
+    comp_digits(0, 10, 10, 25)
     print("===================================================================" * 2)
     print("Compare multiple executions of different splitting of the dataset", end="")
     print("   [random <= rng < random + 100]")
@@ -395,7 +387,7 @@ def rnd_draw(interv, reps):
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
 
 
-def get_iris(rng=42, tst_size=0.25):
+def get_iris(rng=42, tst_size=0.3):
     iris = datasets.load_iris()
     X = iris.data
     y = iris.target
@@ -491,50 +483,28 @@ def main_iris():
             "mean accuracy: %f   min peak: %f   max peak: %f   mean time: %f   mean runs: %f" %
             (mean_acc / delta, min_acc / delta, max_acc / delta, mean_time / delta, mean_runs / delta))
 
-    print("===================================================================" * 2)
-    print("Compare one execution with two different splitting of the dataset")
-    trn, tst = get_iris(rng=11)
-    res2 = iris_measure(trn, tst, 1, m=1)
-    trn, tst = get_iris(rng=42)
-    res1 = iris_measure(trn, tst, 1, m=1)
-    print("rng: %d   accuracy: %f   time: %f   runs: %d" % (42, res1[0].accuracy, res1[0].time, res1[0].run))
-    print("rng: %d   accuracy: %f   time: %f   runs: %d" % (11, res2[0].accuracy, res2[0].time, res2[0].run))
-    print("===================================================================" * 2)
+    print("=" * 72)
     print("Compare multiple executions of the same splitting (rng = 42)")
     comp_iris(42, 43, 1000)
-    print("===================================================================" * 2)
-    print("Compare multiple executions of different splitting of the dataset   [0 <= rng < 10]")
-    comp_iris(0, 10, 100)
-    print("===================================================================" * 2)
+    print("=" * 72)
+    print("Compare multiple executions of different splitting of the dataset", end="")
+    print("   [random <= rng < random + 10]")
+    g = 1 + np.random.randint(1000) + (np.random.randint(20) * np.random.randint(51))
+    print("random = %s" % str(g))
+    comp_iris(g, g + 10, 1000)
+    print("=" * 72)
     print("Compare multiple executions of different splitting of the dataset", end="")
     print("   [random <= rng < random + 100]")
-
     g = 1 + np.random.randint(1000) + (np.random.randint(20) * np.random.randint(51))
     print("random = %s" % str(g))
-    comp_iris(g, g + 100, 100)
-    print("===================================================================" * 2)
-    print("Compare multiple executions of different splitting of the dataset", end="")
-    print("   [random <= rng < random + 10]", end="")
-    print("   [0.1 <= test size <= 0.5]")
-    g = 1 + np.random.randint(1000) + (np.random.randint(20) * np.random.randint(51))
-    print("random = %s" % str(g))
-    print("test size: %s   " % str(0.1), end="")
-    comp_iris(g, g + 10, 100, sp=0.1)
-    print("test size: %s   " % str(0.2), end="")
-    comp_iris(g, g + 10, 100, sp=0.2)
-    print("test size: %s   " % str(0.3), end="")
-    comp_iris(g, g + 10, 100, sp=0.3)
-    print("test size: %s   " % str(0.4), end="")
-    comp_iris(g, g + 10, 100, sp=0.4)
-    print("test size: %s   " % str(0.5), end="")
-    comp_iris(g, g + 10, 100, sp=0.5)
-    print("===================================================================" * 2)
+    comp_iris(g, g + 100, 1000)
+    print("=" * 72)
 
 
 def iris_draw(interv, reps):
     res = []
 
-    g = np.random.randint(1000)
+    g = np.random.randint(1000) + np.random.randint(500)
     f = g + interv
     print("seed: %d" % g)
 
@@ -550,4 +520,5 @@ def iris_draw(interv, reps):
 
 
 if __name__ == '__main__':
-    digits_draw(20, 20)
+    # iris_draw(500, 100)
+    main_digits()
