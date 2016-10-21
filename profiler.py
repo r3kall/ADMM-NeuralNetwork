@@ -11,7 +11,7 @@ from src.commons import get_max_index, convert_binary_to_number
 __author__ = 'Lorenzo Rutigliano, lnz.rutigliano@gmail.com'
 
 
-def rnd_train(net, trn_instance, train_iters=1, warm_iters=0):
+def train(net, trn_instance, train_iters=1, warm_iters=0):
     st = time.time()
     for i in range(warm_iters):
         # Training without Lagrange multiplier update
@@ -23,7 +23,7 @@ def rnd_train(net, trn_instance, train_iters=1, warm_iters=0):
     return net, endt
 
 
-def rnd_test(net, tst_instance):
+def test(net, tst_instance):
     # Accuracy over validation data
     res = net.feedforward(tst_instance.samples)
     test = res.shape[1]
@@ -57,7 +57,7 @@ def draw_histogram(l, dataname):
     fr.set_facecolor('white')
 
     data = np.array([int(i * 100) for i in l])
-    lnspc = np.linspace(min(data), max(data), 100)
+    lnspc = np.linspace(min(data), max(data), len(data))
 
     d = np.diff(np.unique(data)).min()
     left_of_first_bin = data.min() - float(d) / 2
@@ -70,7 +70,6 @@ def draw_histogram(l, dataname):
 
     m, s = stats.norm.fit(data)
     print("mean: %f   sigma: %f" % (m, s))
-    print("median: %f" % np.median(data))
     pdf_g = stats.norm.pdf(lnspc, m, s) * k
     plt.plot(lnspc, pdf_g, 'r--', label='Norm', linewidth=w)
 
@@ -91,11 +90,10 @@ def draw_histogram(l, dataname):
     plt.subplots_adjust(left=0.15)
     plt.grid(True)
     plt.xlabel("accuracy")
-    plt.ylabel("probability density")
-    plt.title(r'{0} dataset  $ \mu={1}, \ \sigma={2}, \ median={3}$'.format(dataname,
+    plt.ylabel("probability")
+    plt.title(r'{0} dataset  $ \ \mu={1}, \ \sigma={2}$'.format(dataname,
                                                               np.round(m, decimals=1),
-                                                              np.round(s, decimals=1),
-                                                              np.median(data)))
+                                                              np.round(s, decimals=1)))
     plt.show()
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
@@ -107,7 +105,7 @@ def get_digits(classes=10, rng=42):
     X, y = datasets.load_digits(n_class=classes, return_X_y=True)
 
     X_train, X_test, y_train, y_test = train_test_split(X, y,
-                                                        test_size=0.2,
+                                                        test_size=0.3,
                                                         random_state=rng)
 
     trg_train = np.zeros((classes, len(y_train)), dtype='uint8')
@@ -140,32 +138,28 @@ def digits_measure(trn, tst, ws, m=10, k=100):
                             trn.targets.shape[0],
                             129, gamma=10., beta=1.)
 
-        flag = False
-        ttmp = 0.
+        net, t = train(net, trn, train_iters=0, warm_iters=ws)
+        acc = test(net, tst)
+        ttmp = t
         ctrl = 0
         tacc = -1.
 
         for innit in range(k):
-            if flag is False:
-                net, t = rnd_train(net, trn, train_iters=0, warm_iters=ws)
-                acc = rnd_test(net, tst)
-                flag = True
+            if acc < 0.99:
+                net, t = train(net, trn, train_iters=1, warm_iters=0)
+                acc = test(net, tst)
                 ttmp += t
 
-            if acc < 0.99:
-                net, t = rnd_train(net, trn, train_iters=1, warm_iters=0)
-                acc = rnd_test(net, tst)
                 if tacc >= acc:
                     ctrl += 1
                 else:
                     tacc = acc
-                    ttim = ttmp + t
+                    ttim = ttmp
                     tk = innit
                     ctrl = 0
-                if ctrl >= 4:
+                if ctrl >= 5:
                     res.append(rundict(tacc, ttim, tk + 1))
                     break
-                ttmp += t
             else:
                 res.append(rundict(acc, ttmp, innit + 1))
                 break
@@ -176,6 +170,63 @@ def digits_measure(trn, tst, ws, m=10, k=100):
                 else:
                     res.append(rundict(tacc, ttim, tk + 1))
     return res
+
+
+def digits_fitting(k=100):
+    accuracy = []
+    validation = []
+    timelabel = []
+
+    trn, tst = get_digits(rng=None)
+
+    net = NeuralNetwork(trn.samples.shape[1],
+                        trn.samples.shape[0],
+                        trn.targets.shape[0],
+                        129, gamma=10., beta=1.)
+
+    net, t = train(net, trn, train_iters=0, warm_iters=12)
+    acc = test(net, tst)
+    ttmp = t
+
+    for innit in range(k):
+        if acc < 0.99:
+            net, t = train(net, trn, train_iters=1, warm_iters=0)
+            val = test(net, trn)
+            acc = test(net, tst)
+            ttmp += t
+            accuracy.append(acc)
+            validation.append(val)
+            timelabel.append(ttmp)
+        else:
+            break
+
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as mpatches
+    from scipy.interpolate import spline
+
+    fig = plt.figure(1)
+    fig.set_figheight(12)
+    fig.set_figwidth(9)
+    fr = fig.patch
+    fr.set_facecolor('white')
+
+    x = np.array(timelabel)
+    x_sm = np.linspace(x.min(), x.max(), 25)
+    y1 = spline(timelabel, accuracy, x_sm)
+    y2 = spline(timelabel, validation, x_sm)
+
+    acc_line = mpatches.Patch(color='red', label='testing accuracy')
+    val_line = mpatches.Patch(color='blue', label='validation accuracy')
+    plt.legend(handles=[acc_line, val_line], bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
+               ncol=2, mode="expand", borderaxespad=0.)
+
+    plt.plot(x_sm, y1, 'r', x_sm, y2, 'b')
+
+    plt.subplots_adjust(left=0.15)
+    plt.xlabel("seconds")
+    plt.ylabel("accuracy")
+    plt.xlim(0, x.max())
+    plt.show()
 
 
 def main_digits():
@@ -201,12 +252,17 @@ def main_digits():
              mean_time / delta, mean_runs / delta, ws))
 
     print("===================================================================" * 2)
+    print("Compare one execution of one splitting (rng = 42)")
+    comp_digits(42, 43, 10, 1)
+    print("===================================================================" * 2)
     print("Compare multiple executions of the same splitting (rng = 42)")
     comp_digits(42, 43, 10, 100)
     print("===================================================================" * 2)
     print("Compare multiple executions of different splitting of the dataset", end="")
-    print("   [0 <= rng < 10]")
-    comp_digits(0, 10, 10, 25)
+    print("   [random <= rng < random + 10]")
+    g = 1 + np.random.randint(1000) + (np.random.randint(20) * np.random.randint(51))
+    print("random = %s" % str(g))
+    comp_digits(g, g + 10, 10, 10)
     print("===================================================================" * 2)
     print("Compare multiple executions of different splitting of the dataset", end="")
     print("   [random <= rng < random + 100]")
@@ -295,14 +351,14 @@ def rnd_measure(trn, tst, ws, m=10, k=100):
 
         for innit in range(k):
             if flag is False:
-                net, t = rnd_train(net, trn, train_iters=0, warm_iters=ws)
-                acc = rnd_test(net, tst)
+                net, t = train(net, trn, train_iters=0, warm_iters=ws)
+                acc = test(net, tst)
                 flag = True
                 ttmp += t
 
             if acc < 0.99:
-                net, t = rnd_train(net, trn, train_iters=1, warm_iters=0)
-                acc = rnd_test(net, tst)
+                net, t = train(net, trn, train_iters=1, warm_iters=0)
+                acc = test(net, tst)
                 if tacc >= acc:
                     ctrl += 1
                 else:
@@ -441,14 +497,14 @@ def iris_measure(trn, tst, ws, m=10, k=100):
 
         for innit in range(k):
             if flag is False:
-                net, t = rnd_train(net, trn, train_iters=0, warm_iters=ws)
-                acc = rnd_test(net, tst)
+                net, t = train(net, trn, train_iters=0, warm_iters=ws)
+                acc = test(net, tst)
                 flag = True
                 ttmp += t
 
             if acc < 0.99:
-                net, t = rnd_train(net, trn, train_iters=1, warm_iters=0)
-                acc = rnd_test(net, tst)
+                net, t = train(net, trn, train_iters=1, warm_iters=0)
+                acc = test(net, tst)
                 if tmpacc >= acc:
                     res.append(rundict(tmpacc, ttmp, innit))
                     break
@@ -460,6 +516,64 @@ def iris_measure(trn, tst, ws, m=10, k=100):
             if innit == k - 1:
                 res.append(rundict(acc, ttmp, innit + 1))
     return res
+
+
+def iris_fitting(k=1000):
+    accuracy = []
+    validation = []
+    timelabel = []
+
+    trn, tst = get_iris(rng=None)
+
+    net = NeuralNetwork(trn.samples.shape[1],
+                        trn.samples.shape[0],
+                        trn.targets.shape[0],
+                        9, gamma=1., beta=0.5)
+
+    net, t = train(net, trn, train_iters=0, warm_iters=1)
+    acc = test(net, tst)
+    ttmp = t
+
+    for innit in range(k):
+        if acc < 0.99:
+            net, t = train(net, trn, train_iters=1, warm_iters=0)
+            val = test(net, trn)
+            acc = test(net, tst)
+            ttmp += t
+            accuracy.append(acc)
+            validation.append(val)
+            timelabel.append(ttmp)
+        else:
+            break
+
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as mpatches
+    from scipy.interpolate import spline
+
+    fig = plt.figure(1)
+    fig.set_figheight(12)
+    fig.set_figwidth(9)
+    fr = fig.patch
+    fr.set_facecolor('white')
+
+    x = np.array(timelabel)
+    x_sm = np.linspace(x.min(), x.max(), 50)
+    y1 = spline(timelabel, accuracy, x_sm)
+    y2 = spline(timelabel, validation, x_sm)
+
+    acc_line = mpatches.Patch(color='red', label='testing accuracy')
+    val_line = mpatches.Patch(color='blue', label='validation accuracy')
+    plt.legend(handles=[acc_line, val_line], bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
+               ncol=2, mode="expand", borderaxespad=0.)
+
+    plt.plot(x_sm, y1, 'r', x_sm, y2, 'b')
+
+    plt.subplots_adjust(left=0.15)
+    plt.xlabel("seconds")
+    plt.ylabel("accuracy")
+    plt.xlim(0, x.max())
+    plt.ylim(0.80, 1.)
+    plt.show()
 
 
 def main_iris():
@@ -520,5 +634,5 @@ def iris_draw(interv, reps):
 
 
 if __name__ == '__main__':
-    # iris_draw(500, 100)
-    main_digits()
+    iris_fitting(k=1000)
+
