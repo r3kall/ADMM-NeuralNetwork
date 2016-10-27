@@ -172,33 +172,51 @@ def digits_measure(trn, tst, ws, m=10, k=100):
     return res
 
 
-def digits_fitting(k=100):
-    accuracy = []
-    validation = []
-    timelabel = []
+def digits_fitting(m=10, k=100):
+    accuracy = [[] for i in range(m)]
+    validation = [[] for i in range(m)]
+    timelabel = [[] for i in range(m)]
 
-    trn, tst = get_digits(rng=None)
+    for i in range(m):
+        g = np.random.randint(2200)
+        trn, tst = get_digits(rng=g)
+        net = NeuralNetwork(trn.samples.shape[1],
+                            trn.samples.shape[0],
+                            trn.targets.shape[0],
+                            129, gamma=10., beta=1.)
 
-    net = NeuralNetwork(trn.samples.shape[1],
-                        trn.samples.shape[0],
-                        trn.targets.shape[0],
-                        129, gamma=10., beta=1.)
+        net, t = train(net, trn, train_iters=0, warm_iters=10)
+        acc = test(net, tst)
+        ttmp = t
 
-    net, t = train(net, trn, train_iters=0, warm_iters=12)
-    acc = test(net, tst)
-    ttmp = t
-
-    for innit in range(k):
-        if acc < 0.99:
+        for innit in range(k):
             net, t = train(net, trn, train_iters=1, warm_iters=0)
             val = test(net, trn)
             acc = test(net, tst)
             ttmp += t
-            accuracy.append(acc)
-            validation.append(val)
-            timelabel.append(ttmp)
-        else:
-            break
+            accuracy[i].append(acc)
+            validation[i].append(val)
+            timelabel[i].append(ttmp)
+
+    al = []
+    vl = []
+    tl = []
+    for j in range(k):
+        a_item = np.mean([accuracy[i][j] for i in range(m)])
+        v_item = np.mean([validation[i][j] for i in range(m)])
+        t_item = np.mean([timelabel[i][j] for i in range(m)])
+        al.append(a_item)
+        vl.append(v_item)
+        tl.append(t_item)
+    al.insert(0, al[0] / 2)
+    vl.insert(0, vl[0] / 2)
+    tl.insert(0, tl[0] / 2)
+    al.insert(0, al[0] / 4)
+    vl.insert(0, vl[0] / 4)
+    tl.insert(0, tl[0] / 4)
+    al.insert(0, 0.)
+    vl.insert(0, 0.)
+    tl.insert(0, 0.)
 
     import matplotlib.pyplot as plt
     import matplotlib.patches as mpatches
@@ -210,10 +228,10 @@ def digits_fitting(k=100):
     fr = fig.patch
     fr.set_facecolor('white')
 
-    x = np.array(timelabel)
-    x_sm = np.linspace(x.min(), x.max(), 25)
-    y1 = spline(timelabel, accuracy, x_sm)
-    y2 = spline(timelabel, validation, x_sm)
+    x = np.array(tl)
+    x_sm = np.linspace(x.min(), x.max(), 10)
+    y1 = spline(tl, al, x_sm)
+    y2 = spline(tl, vl, x_sm)
 
     acc_line = mpatches.Patch(color='red', label='testing accuracy')
     val_line = mpatches.Patch(color='blue', label='validation accuracy')
@@ -226,6 +244,7 @@ def digits_fitting(k=100):
     plt.xlabel("seconds")
     plt.ylabel("accuracy")
     plt.xlim(0, x.max())
+    plt.ylim(0.80, 1.)
     plt.show()
 
 
@@ -518,33 +537,43 @@ def iris_measure(trn, tst, ws, m=10, k=100):
     return res
 
 
-def iris_fitting(k=1000):
-    accuracy = []
-    validation = []
-    timelabel = []
+def iris_fitting(m=100, k=100):
+    accuracy = [[] for i in range(m)]
+    validation = [[] for i in range(m)]
+    timelabel = [[] for i in range(m)]
 
-    trn, tst = get_iris(rng=None)
+    for i in range(m):
+        g = np.random.randint(2200)
+        trn, tst = get_iris(rng=g)
+        net = NeuralNetwork(trn.samples.shape[1],
+                            trn.samples.shape[0],
+                            trn.targets.shape[0],
+                            9, gamma=1., beta=0.5)
 
-    net = NeuralNetwork(trn.samples.shape[1],
-                        trn.samples.shape[0],
-                        trn.targets.shape[0],
-                        9, gamma=1., beta=0.5)
+        net, t = train(net, trn, train_iters=0, warm_iters=1)
+        acc = test(net, tst)
+        ttmp = t
 
-    net, t = train(net, trn, train_iters=0, warm_iters=1)
-    acc = test(net, tst)
-    ttmp = t
-
-    for innit in range(k):
-        if acc < 0.99:
+        for innit in range(k):
             net, t = train(net, trn, train_iters=1, warm_iters=0)
             val = test(net, trn)
             acc = test(net, tst)
             ttmp += t
-            accuracy.append(acc)
-            validation.append(val)
-            timelabel.append(ttmp)
-        else:
-            break
+            accuracy[i].append(acc)
+            validation[i].append(val)
+            timelabel[i].append(ttmp)
+
+    al = []
+    vl = []
+    tl = []
+    for j in range(k):
+        a_item = np.mean([accuracy[i][j] for i in range(m)])
+        v_item = np.mean([validation[i][j] for i in range(m)])
+        t_item = np.mean([timelabel[i][j] for i in range(m)])
+        al.append(a_item)
+        vl.append(v_item)
+        tl.append(t_item)
+
 
     import matplotlib.pyplot as plt
     import matplotlib.patches as mpatches
@@ -556,10 +585,10 @@ def iris_fitting(k=1000):
     fr = fig.patch
     fr.set_facecolor('white')
 
-    x = np.array(timelabel)
-    x_sm = np.linspace(x.min(), x.max(), 50)
-    y1 = spline(timelabel, accuracy, x_sm)
-    y2 = spline(timelabel, validation, x_sm)
+    x = np.array(tl)
+    x_sm = np.linspace(x.min(), x.max(), 10)
+    y1 = spline(tl, al, x_sm)
+    y2 = spline(tl, vl, x_sm)
 
     acc_line = mpatches.Patch(color='red', label='testing accuracy')
     val_line = mpatches.Patch(color='blue', label='validation accuracy')
@@ -634,5 +663,6 @@ def iris_draw(interv, reps):
 
 
 if __name__ == '__main__':
-    iris_fitting(k=1000)
+    # iris_fitting(m=100, k=200)
+    digits_fitting(m=10, k=300)
 
