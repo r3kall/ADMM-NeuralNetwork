@@ -1,9 +1,8 @@
 import numpy as np
 
-from src.algorithms.admm import weight_update, activation_update, argminz, lambda_update
-from src.neuraltools import generate_weights, generate_outputs, generate_activations
-
-from logger import defineLogger, Loggers, Levels
+from .algorithms.admm import weight_update, activation_update, argminz, lambda_update
+from .logger import defineLogger, Loggers, Levels
+from .neuraltools import generate_weights, generate_outputs, generate_activations
 log = defineLogger(Loggers.STANDARD)
 log.setLevel(Levels.INFO.value)
 
@@ -14,6 +13,17 @@ class NeuralNetwork(object):
     # Neural Network Model
     def __init__(self, training_space, features, classes, *layers,
                  beta=1., gamma=10., code='binary'):
+        """
+        Create a neural network with random starting values
+
+        :param training_space:  number of samples
+        :param features:        number of features
+        :param classes:         number of classes
+        :param layers:          tuple of layers dimension
+        :param beta:            double costant
+        :param gamma:           double costant
+        :param code:            set activation/loss function
+        """
 
         assert len(layers) > 0 and features > 0 and classes > 0 and training_space > 0
         self.parameters = (training_space, features, classes, layers)
@@ -80,8 +90,8 @@ class NeuralNetwork(object):
 
 def setalg(code):
     if code == 'binary':
-        from src.algorithms.hingebinary import argminlastz
-        from src.functions import relu, mbhe
+        from .algorithms.hingebinary import argminlastz
+        from .functions import relu, mbhe
         return argminlastz, relu, mbhe
     else:
         return None, None
@@ -92,7 +102,7 @@ class Instance(object):
     # This is a simple encapsulation of a `input signal : output signal`
     # pair in our training set.
     def __init__(self, samples, targets, intype=np.float64, outtype=np.uint8):
-        from src.commons import check_consistency
+        from .commons import check_consistency
         self.samples = np.mat(samples, dtype=intype)
         self.targets = np.mat(targets, dtype=outtype)
         check_consistency(self.samples)

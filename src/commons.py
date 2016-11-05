@@ -1,5 +1,6 @@
 import numpy as np
-from logger import defineLogger, Loggers
+
+from .logger import defineLogger, Loggers
 
 __author__ = 'Lorenzo Rutigliano, lnz.rutigliano@gmail.com'
 

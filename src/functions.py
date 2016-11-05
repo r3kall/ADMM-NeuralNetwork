@@ -35,24 +35,11 @@ def sqloge(z, y):
 # end cost function
 
 
-def loglh(z, y):
-    # Log Likehood
-    err = np.seterr(all='ignore')
-    score = - (z * np.log(y) + (1 - z) * np.log(1 - y))
-    np.seterr(divide=err['divide'], over=err['over'],
-              under=err['under'], invalid=err['invalid'])
-    if np.isnan(score):
-        score = 0
-    return score
-# end cost function
-
-
 cost = {
     "binary_loss"           : bhe,
     "absolute_error"        : abse,
     "squarred_error"        : sqe,
-    "squarred_log_error"    : sqloge,
-    "log_likehood"          : loglh,
+    "squarred_log_error"    : sqloge
 }
 
 ##########################################################################################
@@ -74,19 +61,12 @@ def ndsigmoid(signal):
 
 activation = {
     "relu"          : relu,
-    "sigmoid"       : ndsigmoid,
+    "sigmoid"       : ndsigmoid
 }
 
 ##########################################################################################
 ##              Evaluation Functions ---> z, y are numpy matrix                         ##
 ##########################################################################################
-
-
-def cle(z, y):
-    # Classification error
-    e = [1.0 for k in range(z.shape[0]) for w in range(z.shape[1]) if z[k, w] != y[k, w]]
-    return np.mean(e, dtype='float64')
-# end evaluation function
 
 
 def mbhe(z, y):
@@ -118,11 +98,10 @@ def msqloge(z, y):
 
 
 evaluation = {
-    "classification_error"      : cle,
     "mean_binary_loss"          : mbhe,
     "mean_absolute_error"       : mabse,
     "mean_squarred_error"       : msqe,
-    "mean_squarred_log_error"   : msqloge,
+    "mean_squarred_log_error"   : msqloge
 }
 
 

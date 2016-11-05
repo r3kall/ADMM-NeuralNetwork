@@ -4,8 +4,8 @@ import time
 from sklearn import datasets
 from sklearn.model_selection import train_test_split
 
-from src.neuralnetwork import Instance, NeuralNetwork
-from src.commons import get_max_index, convert_binary_to_number
+from .neuralnetwork import Instance, NeuralNetwork
+from .commons import get_max_index, convert_binary_to_number
 
 
 __author__ = 'Lorenzo Rutigliano, lnz.rutigliano@gmail.com'
@@ -157,7 +157,7 @@ def digits_measure(trn, tst, ws, m=10, k=100):
                     ttim = ttmp
                     tk = innit
                     ctrl = 0
-                if ctrl >= 5:
+                if ctrl >= 4:
                     res.append(rundict(tacc, ttim, tk + 1))
                     break
             else:
@@ -186,8 +186,12 @@ def digits_fitting(m=10, k=100):
                             129, gamma=10., beta=1.)
 
         net, t = train(net, trn, train_iters=0, warm_iters=10)
+        val = test(net, trn)
         acc = test(net, tst)
         ttmp = t
+        accuracy[i].append(acc)
+        validation[i].append(val)
+        timelabel[i].append(ttmp)
 
         for innit in range(k):
             net, t = train(net, trn, train_iters=1, warm_iters=0)
@@ -270,25 +274,25 @@ def main_digits():
             (cl, mean_acc / delta, min_acc / delta, max_acc / delta,
              mean_time / delta, mean_runs / delta, ws))
 
-    print("===================================================================" * 2)
+    print("=" * 72)
     print("Compare one execution of one splitting (rng = 42)")
     comp_digits(42, 43, 10, 1)
-    print("===================================================================" * 2)
+    print("=" * 72)
     print("Compare multiple executions of the same splitting (rng = 42)")
     comp_digits(42, 43, 10, 100)
-    print("===================================================================" * 2)
+    print("=" * 72)
     print("Compare multiple executions of different splitting of the dataset", end="")
     print("   [random <= rng < random + 10]")
     g = 1 + np.random.randint(1000) + (np.random.randint(20) * np.random.randint(51))
     print("random = %s" % str(g))
     comp_digits(g, g + 10, 10, 10)
-    print("===================================================================" * 2)
+    print("=" * 72)
     print("Compare multiple executions of different splitting of the dataset", end="")
     print("   [random <= rng < random + 100]")
     g = 1 + np.random.randint(1000) + (np.random.randint(20) * np.random.randint(51))
     print("random = %s" % str(g))
     comp_digits(g, g + 100, 10, 10)
-    print("===================================================================" * 2)
+    print("=" * 72)
 
 
 def digits_draw(interv, reps):
@@ -308,154 +312,6 @@ def digits_draw(interv, reps):
     l = accuracy_listing(res)
     draw_histogram(l, 'digits')
 
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
-#                                 RANDOM Dataset                                         #
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
-
-
-def get_random_data(rng=42):
-    cl = 2
-    X, y = datasets.make_classification(n_samples=3000, n_features=16,
-                                        n_informative=2, n_redundant=4,
-                                        n_repeated=2, random_state=rng)
-    X = rnd_normalisation(X)
-
-    X_train, X_test, y_train, y_test = train_test_split(X, y,
-                                                        test_size=0.5,
-                                                        random_state=rng)
-
-    trg_train = np.zeros((cl, len(y_train)), dtype='uint8')
-    for e in range(trg_train.shape[1]):
-        v = y_train[e]
-        trg_train[v, e] = 1
-
-    trg_test = np.zeros((cl, len(y_test)), dtype='uint8')
-    for e in range(trg_test.shape[1]):
-        v = y_test[e]
-        trg_test[v, e] = 1
-
-    trn = Instance(X_train.T, trg_train)
-    tst = Instance(X_test.T, trg_test)
-    return trn, tst
-
-
-def rnd_normalisation(x):
-    # x has shape (samples, features)
-    for i in range(x.shape[0]):
-        dem = np.sum(np.exp(x[i, :]))
-        for j in range(x.shape[1]):
-            x[i, j] = np.exp(x[i, j]) / dem
-    return x
-
-
-def rnd_measure(trn, tst, ws, m=10, k=100):
-    res = []
-
-    class rundict():
-        def __init__(self, accuracylabel, timelabel, runsnumber):
-            self.accuracy = accuracylabel
-            self.time = timelabel
-            self.run = runsnumber
-
-    for it in range(m):
-        net = NeuralNetwork(trn.samples.shape[1],
-                            trn.samples.shape[0],
-                            trn.targets.shape[0],
-                            33, 9, gamma=1., beta=1.)
-
-        flag = False
-        ttmp = 0.
-        ctrl = 0
-        tacc = -1.
-
-        for innit in range(k):
-            if flag is False:
-                net, t = train(net, trn, train_iters=0, warm_iters=ws)
-                acc = test(net, tst)
-                flag = True
-                ttmp += t
-
-            if acc < 0.99:
-                net, t = train(net, trn, train_iters=1, warm_iters=0)
-                acc = test(net, tst)
-                if tacc >= acc:
-                    ctrl += 1
-                else:
-                    tacc = acc
-                    ttim = ttmp + t
-                    tk = innit
-                    ctrl = 0
-                if ctrl >= 4:
-                    res.append(rundict(tacc, ttim, tk + 1))
-                    break
-                ttmp += t
-            else:
-                res.append(rundict(acc, ttmp, innit + 1))
-                break
-
-            if innit == k - 1:
-                if ctrl == 0:
-                    res.append(rundict(acc, ttmp, innit + 1))
-                else:
-                    res.append(rundict(tacc, ttim, tk + 1))
-    return res
-
-
-def main_random():
-    def comp_random(dmin, dmax, ws, dm):
-        mean_acc = 0.
-        mean_time = 0.
-        mean_runs = 0.
-        min_acc = 0.
-        max_acc = 0.
-        delta = dmax - dmin
-        for i in range(dmin, dmax):
-            trn, tst = get_random_data(rng=i)
-            res = rnd_measure(trn, tst, ws, m=dm)
-            mean_acc += np.mean([e.accuracy for e in res])
-            mean_time += np.mean([e.time for e in res])
-            mean_runs += np.mean([e.run for e in res])
-            min_acc += np.min([e.accuracy for e in res])
-            max_acc += np.max([e.accuracy for e in res])
-        print(
-            "mean accuracy: %f  min peak: %f  "
-            "max peak: %f  mean time: %f  mean runs: %f  warm iters: %d" %
-            (mean_acc / delta, min_acc / delta, max_acc / delta,
-             mean_time / delta, mean_runs / delta, ws))
-
-    its = 4
-    print("=" * 72)
-    print("Compare multiple executions of the same splitting (rng = 42)")
-    comp_random(42, 43, its, 10)
-    print("=" * 72)
-    print("Compare multiple executions of different splitting of the dataset", end="")
-    print("   [0 <= rng < 10]")
-    comp_random(0, 10, its, 5)
-    print("=" * 72)
-    print("Compare multiple executions of different splitting of the dataset", end="")
-    print("   [random <= rng < random + 10]")
-    g = 1 + np.random.randint(1000) + (np.random.randint(20) * np.random.randint(51))
-    print("random = %s" % str(g))
-    comp_random(g, g + 10, its, 5)
-    print("=" * 72)
-
-
-def rnd_draw(interv, reps):
-    res = []
-
-    g = np.random.randint(1000)
-    f = g + interv
-    print("seed: %d" % g)
-
-    st = time.time()
-    for i in range(g, f):
-        trn, tst = get_random_data(rng=i)
-        res += rnd_measure(trn, tst, 4, m=reps)
-    endt = time.time() - st
-    print("Time: %s" % str(round(endt, ndigits=2)))
-
-    l = accuracy_listing(res)
-    draw_histogram(l, 'random')
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
 #                                 IRIS Dataset                                           #
@@ -660,9 +516,3 @@ def iris_draw(interv, reps):
 
     l = accuracy_listing(res)
     draw_histogram(l, 'iris')
-
-
-if __name__ == '__main__':
-    # iris_fitting(m=100, k=200)
-    digits_fitting(m=10, k=300)
-

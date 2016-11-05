@@ -1,6 +1,6 @@
 import numpy as np
 
-from src.cyth.binarymin import binarymin
+from ..cyth.binarymin import binarymin
 
 __author__ = 'Lorenzo Rutigliano, lnz.rutigliano@gmail.com'
 
