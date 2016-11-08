@@ -25,5 +25,5 @@ python3.5 setup.py install
 ```
 After setup:
 ```
-admm-report [iris | digits]
+admm-runner.py [iris | digits]
 ```

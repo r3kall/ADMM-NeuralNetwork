@@ -17,9 +17,7 @@ setup(
         'scipy >= 0.18',
         'Cython >= 0.24.1'
     ],
-    entry_point={
-        "console_scripts": ['admm-report = src.runner:main']
-    },
+    scripts=['admm-runner.py'],
     description='Experimental Centralized ADMM approach for Neural Networks',
     author='Lorenzo Rutigliano',
     author_email='lnz.rutigliano@gmail.com'
