@@ -14,6 +14,7 @@ setup(
     install_requires=[
         'numpy >= 1.11.1',
         'scikit-learn >= 0.17.1',
+        'scipy >= 0.18',
         'Cython >= 0.24.1'
     ],
     entry_point={

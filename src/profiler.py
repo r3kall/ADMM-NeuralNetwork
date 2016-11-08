@@ -260,6 +260,7 @@ def main_digits():
         min_acc = 0.
         max_acc = 0.
         delta = dmax - dmin
+        st = time.time()
         for i in range(dmin, dmax):
             trn, tst = get_digits(classes=cl, rng=i)
             res = digits_measure(trn, tst, ws, m=dm)
@@ -268,11 +269,13 @@ def main_digits():
             mean_runs += np.mean([e.run for e in res])
             min_acc += np.min([e.accuracy for e in res])
             max_acc += np.max([e.accuracy for e in res])
+        endt = time.time() - st
         print(
             "classes: %d  mean accuracy: %f  min peak: %f  "
             "max peak: %f  mean time: %f  mean runs: %f  warm iters: %d" %
             (cl, mean_acc / delta, min_acc / delta, max_acc / delta,
              mean_time / delta, mean_runs / delta, ws))
+        print("Total time of the computation: %f" % endt)
 
     print("=" * 72)
     print("Compare one execution of one splitting (rng = 42)")
@@ -470,6 +473,7 @@ def main_iris():
         min_acc = 0.
         max_acc = 0.
         delta = maxg - ming
+        st = time.time()
         for i in range(ming, maxg):
             trn, tst = get_iris(rng=i, tst_size=sp)
             res = iris_measure(trn, tst, 1, m=mg)
@@ -478,9 +482,11 @@ def main_iris():
             mean_runs += np.mean([e.run for e in res])
             min_acc += np.min([e.accuracy for e in res])
             max_acc += np.max([e.accuracy for e in res])
+        endt = time.time() - st
         print(
             "mean accuracy: %f   min peak: %f   max peak: %f   mean time: %f   mean runs: %f" %
             (mean_acc / delta, min_acc / delta, max_acc / delta, mean_time / delta, mean_runs / delta))
+        print("Total time of the computation: %f" % endt)
 
     print("=" * 72)
     print("Compare multiple executions of the same splitting (rng = 42)")
