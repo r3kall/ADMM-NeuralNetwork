@@ -89,6 +89,3 @@ validation. Validation alone selects a checkpoint (up to four stale updates or
 Reported time includes all attempted training updates; selected update count
 excludes warm-start steps. Times may vary between runs; numerical results may
 vary between BLAS/platforms.
-
-Old benchmark scores/curves are not comparable: they selected iterations using
-test accuracy and included synthetic curve points.
