@@ -38,14 +38,8 @@ def weight_update(layer_output, activation_input):
 # end
 
 
-def _activation_inverse(next_weight, beta, gamma):
-    m1 = beta * (np.dot(next_weight.H, next_weight))
-    m2 = gamma * (np.identity(next_weight.shape[1]))
-    return np.linalg.inv(m1 + m2)
-
-
 def _activation_formulate(next_weight, next_layer_output, layer_nl_output, beta, gamma):
-    m1 = beta * (np.dot(next_weight.H, next_layer_output))
+    m1 = beta * (np.dot(next_weight.conj().T, next_layer_output))
     m2 = gamma * layer_nl_output
     return m1 + m2
 
@@ -63,10 +57,12 @@ def activation_update(next_weight, next_layer_output, layer_nl_output, beta, gam
     :param layer_nl_output:     activate output matrix h(z)
     :return:                    activation matrix
     """
-    m1 = _activation_inverse(next_weight, beta, gamma)
+    if not np.isfinite(beta) or not np.isfinite(gamma) or beta <= 0 or gamma <= 0:
+        raise ValueError("beta and gamma must be finite and positive")
+    m1 = beta * (next_weight.conj().T @ next_weight) + gamma * np.eye(next_weight.shape[1])
     m2 = _activation_formulate(next_weight, next_layer_output,
                                layer_nl_output, beta, gamma)
-    return np.dot(m1, m2)
+    return np.linalg.solve(m1, m2)
 # end
 
 

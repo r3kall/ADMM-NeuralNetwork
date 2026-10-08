@@ -26,6 +26,12 @@ cdef minimize(DTYPE_t a, DTYPE_t m, double alpha, double beta):
 
 
 def argminc(np.ndarray[DTYPE_t, ndim=2] a, np.ndarray[DTYPE_t, ndim=2] m, double gamma, double beta):
+    if not np.isfinite(gamma) or not np.isfinite(beta) or gamma <= 0 or beta <= 0:
+        raise ValueError("gamma and beta must be finite and positive")
+    if a.shape[0] != m.shape[0] or a.shape[1] != m.shape[1]:
+        raise ValueError("a and m must have equal shapes")
+    if not np.isfinite(a).all() or not np.isfinite(m).all():
+        raise ValueError("a and m must be finite")
     cdef int x = a.shape[0]
     cdef int y = a.shape[1]
     cdef np.ndarray[DTYPE_t, ndim=2] z = np.zeros((x, y), dtype=DTYPE)

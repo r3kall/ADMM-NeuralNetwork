@@ -19,7 +19,8 @@ def check_consistency(a):
 
 
 def check_dimensions(a, n, m):
-    assert n > 0, m > 0
+    if n <= 0 or m <= 0:
+        raise ValueError("dimensions must be positive")
     check_consistency(a)
     if a.shape[0] != n or a.shape[1] != m:
         raise ValueError("Invalid dimensions of the array")
@@ -38,7 +39,8 @@ def get_max_index(a):
 
 
 def convert_binary_to_number(t, dim):
-    assert len(t) == dim
+    if len(t) != dim:
+        raise ValueError("target length does not match classes")
     for i in range(dim):
         if t[i] == 1:
             return i
@@ -46,9 +48,8 @@ def convert_binary_to_number(t, dim):
 
 
 def get_percentage(percentage, n):
-    assert 0 <= percentage <= 100
-    if percentage == 0:
-        return 0
-    if percentage == 100:
-        return n
-    return np.floor((n / 100) * percentage)
+    if not np.isfinite(percentage) or not 0 <= percentage <= 100:
+        raise ValueError("percentage must be finite and between 0 and 100")
+    if isinstance(n, bool) or not isinstance(n, (int, np.integer)) or n < 0:
+        raise ValueError("sample count must be a nonnegative integer")
+    return int(np.floor(n * percentage / 100))

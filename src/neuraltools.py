@@ -1,57 +1,51 @@
 import numpy as np
-import numpy.matlib
 
-from . import neuralnetwork
 
 __author__ = 'Lorenzo Rutigliano, lnz.rutigliano@gmail.com'
 
 
 def generate_weights(t):
-    return [np.mat(np.zeros((t[i], t[i - 1]), dtype='float64')) for i in range(1, len(t))]
-# end tool
+    return [np.zeros((t[i], t[i - 1]), dtype=np.float64) for i in range(1, len(t))]
 
 
-def generate_outputs(t, s):
-    return [np.matlib.randn(t[i], s) for i in range(1, len(t))]
-# end tool
+def generate_outputs(t, s, rng=None):
+    rng = np.random.default_rng(rng)
+    return [rng.standard_normal((t[i], s)) for i in range(1, len(t))]
 
 
-def generate_activations(t, s):
-    return [np.matlib.randn(t[i], s) for i in range(1, len(t) - 1)]
-# end tool
+def generate_activations(t, s, rng=None):
+    rng = np.random.default_rng(rng)
+    return [rng.standard_normal((t[i], s)) for i in range(1, len(t) - 1)]
 
 
-def get_sub_instance(instance, percentage=25, shuffle=False):
-    from commons import get_percentage
-    samples = instance.samples
-    targets = instance.targets
-    if shuffle:
-        rng = np.random.get_state()
-        np.random.shuffle(samples.T)
-        np.random.set_state(rng)
-        np.random.shuffle(targets.T)
-    n = get_percentage(percentage, samples.shape[1])
-    samples = samples[:, :n]
-    targets = targets[:, :n]
-    return neuralnetwork.Instance(samples, targets)
+def _indices(instance, shuffle, rng):
+    n = instance.samples.shape[1]
+    return np.random.default_rng(rng).permutation(n) if shuffle else np.arange(n)
 
 
-def split_instance(instance, percentage=25, shuffle=False):
-    assert 0 < percentage < 100
-    from commons import get_percentage
-    samples = instance.samples
-    targets = instance.targets
-    if shuffle:
-        rng = np.random.get_state()
-        np.random.shuffle(samples.T)
-        np.random.set_state(rng)
-        np.random.shuffle(targets.T)
-    n = get_percentage(percentage, samples.shape[1])
-    s1 = samples[:, :n]
-    t1 = targets[:, :n]
-    s2 = samples[:, n + 1:]
-    t2 = targets[:, n + 1:]
-    return neuralnetwork.Instance(s2, t2), neuralnetwork.Instance(s1, t1)
+def get_sub_instance(instance, percentage=25, shuffle=False, rng=None):
+    from .neuralnetwork import Instance
+    from .commons import get_percentage
+    n = get_percentage(percentage, instance.samples.shape[1])
+    indices = _indices(instance, shuffle, rng)[:n]
+    if n == 0:
+        raise ValueError("subset must contain at least one sample")
+    return Instance(instance.samples[:, indices], instance.targets[:, indices])
+
+
+def split_instance(instance, percentage=25, shuffle=False, rng=None):
+    """Return remainder, selected subset without changing the source instance."""
+    from .neuralnetwork import Instance
+    from .commons import get_percentage
+    if not 0 < percentage < 100:
+        raise ValueError("percentage must be between 0 and 100, exclusive")
+    n = get_percentage(percentage, instance.samples.shape[1])
+    if not 0 < n < instance.samples.shape[1]:
+        raise ValueError("both partitions must contain samples")
+    indices = _indices(instance, shuffle, rng)
+    parts = (indices[n:], indices[:n])
+    return tuple(Instance(instance.samples[:, ix], instance.targets[:, ix])
+                 for ix in parts)
 
 
 def save_network_to_file(net, filename="network0.pkl"):
@@ -63,7 +57,7 @@ def save_network_to_file(net, filename="network0.pkl"):
 
     if filename == "network0.pkl":
         while os.path.exists(os.path.join(os.getcwd(), filename)):
-            filename = re.sub('\d(?!\d)', lambda x: str(int(x.group(0)) + 1), filename)
+            filename = re.sub(r'\d(?!\d)', lambda x: str(int(x.group(0)) + 1), filename)
 
     with open(filename, 'wb') as file:
         store_dict = {
@@ -86,6 +80,7 @@ def save_network_to_file(net, filename="network0.pkl"):
 
 def load_network_from_file(filename):
     import pickle
+    from .neuralnetwork import NeuralNetwork
     """
     Load the complete configuration of a previously stored network.
     """
@@ -104,12 +99,12 @@ def load_network_from_file(filename):
         outputs         = store_dict["outputs"]
         activations     = store_dict["activations"]
 
-    net = neuralnetwork.NeuralNetwork(training_space, features, classes,
+    net = NeuralNetwork(training_space, features, classes,
                                           *layers, beta=beta, gamma=gamma)
-    net.w = weights
-    net.z = outputs
-    net.a = activations
-    net.l = l
+    net.w = [np.asarray(w, dtype=np.float64) for w in weights]
+    net.z = [np.asarray(z, dtype=np.float64) for z in outputs]
+    net.a = [np.asarray(a, dtype=np.float64) for a in activations]
+    net.l = np.asarray(l, dtype=np.float64)
     return net
 # end tool
 
